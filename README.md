@@ -2,6 +2,8 @@
 
 日文五十音練習網頁：平假名、片假名對照表和小測驗。
 
+線上版：https://vvayhuang.github.io/kana-practice/
+
 ## 功能
 
 - **五十音表**：清音、濁音・半濁音、拗音。點假名會發音，並顯示平假名／片假名對照和念法提醒。
@@ -18,6 +20,12 @@ npm run dev
 ```
 
 打開 http://localhost:5173 就能使用。輸出正式版用 `npm run build`，檔案會在 `dist/`。
+
+## 發佈到 GitHub Pages
+
+推送到 `main` 後，`.github/workflows/deploy-pages.yml` 會自動打包（`npm run build:pages`）並更新線上版。
+
+第一次使用前，要到 repo 的 **Settings → Pages**，把 **Source** 選成 **GitHub Actions**。
 
 ## 檔案
 
