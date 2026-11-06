@@ -1,0 +1,124 @@
+import { SECTIONS, BY_KANA, NOTES, toKatakana, keyOf } from './kana.js';
+import { getPref, setPref, mastery, getStat } from './store.js';
+import { say } from './speech.js';
+import { icons } from './ui.js';
+
+export function renderChart(root) {
+  const el = document.createElement('div');
+  el.className = 'chart';
+  root.appendChild(el);
+
+  let script = getPref('chartScript', 'hira');
+  let selected = null;
+
+  const conv = (k) => (script === 'kata' ? toKatakana(k) : k);
+
+  function cellHTML(c) {
+    if (!c) return '<span class="cell empty" aria-hidden="true"></span>';
+    const cls = [
+      'cell',
+      `m-${mastery(keyOf(c, script))}`,
+      c.kana.length > 1 ? 'is-combo' : '',
+      selected && selected.kana === c.kana ? 'is-selected' : '',
+    ].join(' ');
+    return `<button type="button" class="${cls}" data-kana="${c.kana}" aria-label="${conv(c.kana)}，${c.romaji}">
+      <span class="k" lang="ja">${conv(c.kana)}</span><span class="r">${c.romaji}</span>
+    </button>`;
+  }
+
+  const sectionHTML = (sec) => `
+    <section class="sec">
+      <div class="sec-head"><h2>${sec.title}</h2><span>${sec.note}</span></div>
+      <div class="grid cols-${sec.cols.length}">
+        ${sec.cols.map((c) => `<span class="col-h" aria-hidden="true">${c}</span>`).join('')}
+        ${sec.rows.map((r) => r.cells.map(cellHTML).join('')).join('')}
+      </div>
+    </section>`;
+
+  function detailHTML(c) {
+    const s = getStat(keyOf(c, script));
+    const stat = s ? `答對 ${s.c} 次・答錯 ${s.w} 次` : '還沒練習過';
+    const note = NOTES[c.kana];
+    return `<div class="detail-inner">
+      <div class="pair">
+        <div class="${script === 'hira' ? 'on' : ''}"><span class="big" lang="ja">${c.kana}</span><small>平假名</small></div>
+        <div class="${script === 'kata' ? 'on' : ''}"><span class="big" lang="ja">${toKatakana(c.kana)}</span><small>片假名</small></div>
+      </div>
+      <div class="d-info">
+        <div class="d-romaji">${c.romaji}</div>
+        ${note ? `<div class="d-note">${note}</div>` : ''}
+        <div class="d-stat">${stat}</div>
+      </div>
+      <button type="button" class="icon-btn accent" data-act="speak" aria-label="播放發音">${icons.volume}</button>
+      <button type="button" class="icon-btn plain" data-act="close" aria-label="關閉">${icons.close}</button>
+    </div>`;
+  }
+
+  function draw() {
+    const showRomaji = getPref('showRomaji', true);
+    el.classList.toggle('hide-romaji', !showRomaji);
+    el.innerHTML = `
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="切換文字">
+          <button type="button" data-script="hira" aria-pressed="${script === 'hira'}">平假名</button>
+          <button type="button" data-script="kata" aria-pressed="${script === 'kata'}">片假名</button>
+        </div>
+        <label class="check"><input type="checkbox" data-act="romaji" ${showRomaji ? 'checked' : ''} /> 顯示拼音</label>
+      </div>
+      <p class="hint">點一下假名就能聽發音，看平假名和片假名的對照。</p>
+      ${SECTIONS.map(sectionHTML).join('')}
+      <div class="legend">
+        <span><i class="dot good"></i>已熟練</span>
+        <span><i class="dot learning"></i>練習中</span>
+        <span><i class="dot weak"></i>常答錯</span>
+        <span class="muted">做完測驗後會標在表格上</span>
+      </div>
+      <div class="detail" ${selected ? '' : 'hidden'}>${selected ? detailHTML(selected) : ''}</div>`;
+  }
+
+  function select(kana) {
+    selected = BY_KANA[kana];
+    el.querySelectorAll('.cell.is-selected').forEach((c) => c.classList.remove('is-selected'));
+    el.querySelector(`.cell[data-kana="${kana}"]`)?.classList.add('is-selected');
+    const d = el.querySelector('.detail');
+    d.innerHTML = detailHTML(selected);
+    d.hidden = false;
+    say(conv(kana));
+  }
+
+  function close() {
+    selected = null;
+    el.querySelectorAll('.cell.is-selected').forEach((c) => c.classList.remove('is-selected'));
+    el.querySelector('.detail').hidden = true;
+  }
+
+  el.addEventListener('click', (e) => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.script) {
+      script = t.dataset.script;
+      setPref('chartScript', script);
+      draw();
+    } else if (t.dataset.kana) {
+      select(t.dataset.kana);
+    } else if (t.dataset.act === 'speak' && selected) {
+      say(conv(selected.kana), { force: true });
+    } else if (t.dataset.act === 'close') {
+      close();
+    }
+  });
+
+  el.addEventListener('change', (e) => {
+    if (e.target.dataset.act !== 'romaji') return;
+    setPref('showRomaji', e.target.checked);
+    el.classList.toggle('hide-romaji', !e.target.checked);
+  });
+
+  const onKey = (e) => {
+    if (e.key === 'Escape' && selected) close();
+  };
+  document.addEventListener('keydown', onKey);
+
+  draw();
+  return () => document.removeEventListener('keydown', onKey);
+}
