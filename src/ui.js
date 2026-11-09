@@ -7,6 +7,11 @@ export const icons = {
   close: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
   arrow: svg('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'),
   check: svg('<path d="M20 6 9 17l-5-5"/>'),
+  cloud: svg('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>'),
+  cloudCheck: svg('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m9.5 13.5 2 2 3.5-3.5"/>'),
+  cloudOff: svg(
+    '<path d="m2 2 20 20"/><path d="M5.78 5.78A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.31-.19"/><path d="M21.53 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7 7 0 0 0 10 5.07"/>',
+  ),
 };
 
 let timer;

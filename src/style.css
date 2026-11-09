@@ -224,6 +224,24 @@ button {
 .icon-btn[aria-pressed='false'] {
   color: var(--ink-3);
 }
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+.icon-btn.sync {
+  color: var(--ink-3);
+}
+.icon-btn.sync[data-state='synced'] {
+  color: var(--ok);
+}
+.icon-btn.sync[data-state='connecting'] svg {
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes pulse {
+  to {
+    opacity: 0.35;
+  }
+}
 
 .icon-btn.accent {
   width: 48px;

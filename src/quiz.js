@@ -1,5 +1,5 @@
 import { GROUPS, ALL, BY_KANA, toKatakana, display, keyOf } from './kana.js';
-import { getPref, setPref, record, weakKeys } from './store.js';
+import { getPref, setPref, record, weakKeys, onStatsChange } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -68,6 +68,7 @@ export function mountQuiz(root) {
   let screen = 'setup';
   let game = null;
   let timer = null;
+  let weakShown = -1; // 設定畫面上「複習常錯」顯示的數量
 
   const saveCfg = () => {
     setPref('quizMode', cfg.mode);
@@ -155,6 +156,7 @@ export function mountQuiz(root) {
     const items = selectedItems();
     const total = items.length * scriptsFor(cfg.script).length;
     const weak = weakQuestions();
+    weakShown = weak.length;
     const label = (g) => (cfg.script === 'kata' ? toKatakana(g.label) : g.label);
 
     el.innerHTML = `
@@ -383,9 +385,15 @@ export function mountQuiz(root) {
   };
   document.addEventListener('keydown', onKey);
 
+  // 其他裝置的紀錄同步進來時，設定畫面的「複習常錯的假名」可能要更新
+  const offStats = onStatsChange(() => {
+    if (screen === 'setup' && weakQuestions().length !== weakShown) draw();
+  });
+
   draw();
   return () => {
     clearTimeout(timer);
     document.removeEventListener('keydown', onKey);
+    offStats();
   };
 }

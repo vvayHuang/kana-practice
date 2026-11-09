@@ -3,6 +3,7 @@ import { renderChart } from './chart.js';
 import { mountQuiz } from './quiz.js';
 import { initSpeech } from './speech.js';
 import { getPref, setPref } from './store.js';
+import { initSync, getSyncStatus, onSyncStatus } from './sync.js';
 import { icons, toast } from './ui.js';
 
 const app = document.getElementById('app');
@@ -16,7 +17,10 @@ app.innerHTML = `
           <p>五十音・平假名・片假名</p>
         </div>
       </div>
-      <button type="button" class="icon-btn" id="sound-toggle"></button>
+      <div class="top-actions">
+        <button type="button" class="icon-btn sync" id="sync-status" hidden></button>
+        <button type="button" class="icon-btn" id="sound-toggle"></button>
+      </div>
     </div>
     <nav class="tabs" aria-label="主要功能">
       <div class="tabs-inner">
@@ -45,6 +49,27 @@ soundBtn.addEventListener('click', () => {
 });
 paintSound();
 initSpeech();
+
+// 雲端同步狀態（只有在 claude.ai 上打開才會出現）
+const SYNC_INFO = {
+  connecting: { icon: 'cloud', text: '正在連線到雲端…' },
+  synced: { icon: 'cloudCheck', text: '練習紀錄已同步到你的 Claude 帳號' },
+  offline: { icon: 'cloudOff', text: '暫時連不上雲端，紀錄先存在這台裝置，連上後會自動同步' },
+  local: { icon: 'cloudOff', text: '沒有登入或沒有權限，練習紀錄只存在這台裝置' },
+};
+const syncBtn = document.getElementById('sync-status');
+const paintSync = (s) => {
+  const info = SYNC_INFO[s];
+  syncBtn.hidden = !info;
+  if (!info) return;
+  syncBtn.dataset.state = s;
+  syncBtn.setAttribute('aria-label', info.text);
+  syncBtn.title = info.text;
+  syncBtn.innerHTML = icons[info.icon];
+};
+syncBtn.addEventListener('click', () => toast(SYNC_INFO[getSyncStatus()]?.text || ''));
+onSyncStatus(paintSync);
+initSync();
 
 // 簡單的 hash 路由：#chart、#quiz
 const view = document.getElementById('view');
