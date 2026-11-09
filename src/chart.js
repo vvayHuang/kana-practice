@@ -1,5 +1,5 @@
 import { SECTIONS, BY_KANA, NOTES, toKatakana, keyOf } from './kana.js';
-import { getPref, setPref, mastery, getStat } from './store.js';
+import { getPref, setPref, mastery, getStat, onStatsChange } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -35,9 +35,13 @@ export function renderChart(root) {
       </div>
     </section>`;
 
-  function detailHTML(c) {
+  function statText(c) {
     const s = getStat(keyOf(c, script));
-    const stat = s ? `答對 ${s.c} 次・答錯 ${s.w} 次` : '還沒練習過';
+    return s ? `答對 ${s.c} 次・答錯 ${s.w} 次` : '還沒練習過';
+  }
+
+  function detailHTML(c) {
+    const stat = statText(c);
     const note = NOTES[c.kana];
     return `<div class="detail-inner">
       <div class="pair">
@@ -119,6 +123,19 @@ export function renderChart(root) {
   };
   document.addEventListener('keydown', onKey);
 
+  // 其他裝置的紀錄同步進來時，只更新熟練度顏色和次數，不整個重畫
+  const offStats = onStatsChange(() => {
+    el.querySelectorAll('.cell[data-kana]').forEach((b) => {
+      b.classList.remove('m-new', 'm-learning', 'm-weak', 'm-good');
+      b.classList.add(`m-${mastery(keyOf(BY_KANA[b.dataset.kana], script))}`);
+    });
+    const stat = el.querySelector('.d-stat');
+    if (selected && stat) stat.textContent = statText(selected);
+  });
+
   draw();
-  return () => document.removeEventListener('keydown', onKey);
+  return () => {
+    document.removeEventListener('keydown', onKey);
+    offStats();
+  };
 }
