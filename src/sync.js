@@ -6,19 +6,31 @@
 
 import { getDeviceId, getOwnStats, onRecord, setOtherDevices } from './store.js';
 
-// off：不支援同步／connecting：連線中／synced：已同步／offline：暫時連不上／local：沒登入或沒權限
+// status — off：不支援同步／connecting：連線中／synced：已同步／offline：暫時連不上／local：沒登入或沒權限
+// devices — 有練習紀錄的裝置數量（這台 + 雲端上的其他裝置）
 let status = 'off';
-const statusListeners = new Set();
+let devices = 0;
+let otherDevices = 0;
+const listeners = new Set();
 
-export const getSyncStatus = () => status;
-export function onSyncStatus(fn) {
-  statusListeners.add(fn);
-  return () => statusListeners.delete(fn);
+export const getSyncInfo = () => ({ status, devices });
+export function onSyncChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
 }
+const notify = () => listeners.forEach((fn) => fn(getSyncInfo()));
+
 function setStatus(s) {
   if (s === status) return;
   status = s;
-  statusListeners.forEach((fn) => fn(s));
+  notify();
+}
+
+function countDevices() {
+  const n = otherDevices + (Object.keys(getOwnStats()).length > 0 ? 1 : 0);
+  if (n === devices) return;
+  devices = n;
+  notify();
 }
 
 const sameStats = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
@@ -81,7 +93,10 @@ export async function initSync() {
     dirty = true;
     schedule();
   };
-  onRecord(markDirty);
+  onRecord(() => {
+    markDirty();
+    countDevices(); // 這台裝置第一次答題時，數量會多一台
+  });
   // 切到背景或關掉前，把還沒存的先存
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) flush();
@@ -104,6 +119,8 @@ export async function initSync() {
         else if (stats && typeof stats === 'object') list.push(stats);
       }
       setOtherDevices(list);
+      otherDevices = list.filter((s) => Object.keys(s).length > 0).length;
+      countDevices();
       if (snap.metadata.fromCache) return;
 
       if (!confirmed) {
