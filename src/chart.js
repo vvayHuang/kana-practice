@@ -1,5 +1,5 @@
 import { SECTIONS, BY_KANA, NOTES, toKatakana, keyOf } from './kana.js';
-import { getPref, setPref, mastery, getStat, onStatsChange } from './store.js';
+import { getPref, setPref, mastery, getStat, avgTime, isSlow, onStatsChange } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -36,8 +36,12 @@ export function renderChart(root) {
     </section>`;
 
   function statText(c) {
-    const s = getStat(keyOf(c, script));
-    return s ? `答對 ${s.c} 次・答錯 ${s.w} 次` : '還沒練習過';
+    const key = keyOf(c, script);
+    const s = getStat(key);
+    if (!s) return '還沒練習過';
+    const avg = avgTime(key);
+    const time = avg == null ? '' : `・平均 ${(avg / 1000).toFixed(1)} 秒${isSlow(key) ? '（還不夠快）' : ''}`;
+    return `答對 ${s.c} 次・答錯 ${s.w} 次${time}`;
   }
 
   function detailHTML(c) {
@@ -73,7 +77,7 @@ export function renderChart(root) {
       ${SECTIONS.map(sectionHTML).join('')}
       <div class="legend">
         <span><i class="dot good"></i>已熟練</span>
-        <span><i class="dot learning"></i>練習中</span>
+        <span><i class="dot learning"></i>練習中（含答對但較慢）</span>
         <span><i class="dot weak"></i>常答錯</span>
         <span class="muted">做完測驗後會標在表格上</span>
       </div>

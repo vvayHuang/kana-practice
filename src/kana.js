@@ -79,3 +79,57 @@ export const toKatakana = (s) =>
 
 export const display = (item, script) => (script === 'kata' ? toKatakana(item.kana) : item.kana);
 export const keyOf = (item, script) => `${script}:${item.kana}`;
+
+// ---------- 容易混淆的假名（測驗的干擾選項會優先挑這些） ----------
+
+// 長得像的假名，同一組裡互相容易看錯
+const LOOKALIKE = {
+  hira: ['あお', 'あめぬの', 'いりこ', 'うつら', 'きさち', 'くへ', 'しつも', 'けはほま', 'こに', 'たな', 'にた', 'すむ', 'ねれわ', 'るろそ', 'らち'],
+  kata: ['シツ', 'ソンノ', 'シン', 'ツソ', 'クタケ', 'クワウフ', 'コユヨロ', 'スヌ', 'フラヲワ', 'チテ', 'ナメノ', 'マムア', 'ルレ', 'セヤサ', 'オホ', 'エユ'],
+};
+
+const toHiragana = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+
+const LOOK_MAP = Object.fromEntries(
+  Object.entries(LOOKALIKE).map(([script, groups]) => {
+    const map = {};
+    for (const g of groups) {
+      for (const a of g) for (const b of g) if (a !== b) (map[a] || (map[a] = new Set())).add(b);
+    }
+    return [script, map];
+  }),
+);
+
+// 每個假名在表格上的位置，用來找同一行、同一段的假名
+const POS = new Map();
+for (const sec of SECTIONS) {
+  for (const r of sec.rows) r.cells.forEach((c, col) => c && POS.set(c.kana, { kind: sec.id, row: r.id, col }));
+}
+
+const MARKS = ['', '゙', '゚']; // 沒有記號、濁點、半濁點
+
+// 回傳 { look, sound }：
+// look — 長得像的（包含只差濁點、半濁點的，例如 は／ば／ぱ）
+// sound — 念起來像的（同一行或同一段，例如 か／き、か／さ）
+export function confusables(item, script) {
+  const shown = display(item, script);
+  const [base, ...mark] = shown[0].normalize('NFD');
+  const rest = shown.slice(1);
+  const look = new Set();
+  const tryAdd = (first, m) => {
+    const found = BY_KANA[toHiragana((first + m).normalize('NFC') + rest)];
+    if (found && found !== item) look.add(found);
+  };
+  for (const other of LOOK_MAP[script]?.[base] || []) tryAdd(other, mark.join(''));
+  for (const m of MARKS) tryAdd(base, m);
+
+  const p = POS.get(item.kana);
+  const sound = ALL.filter((i) => {
+    if (i === item || look.has(i)) return false;
+    const o = POS.get(i.kana);
+    if (o.kind !== p.kind) return false;
+    // ん 自己一行，不算在あ段裡
+    return o.row === p.row || (o.col === p.col && o.row !== 'n' && p.row !== 'n');
+  });
+  return { look: [...look], sound };
+}

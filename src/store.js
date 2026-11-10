@@ -50,6 +50,13 @@ function addStats(into, from) {
     const t = into[key] || (into[key] = { c: 0, w: 0 });
     t.c += c;
     t.w += w;
+    // 作答時間（舊紀錄沒有這兩個欄位）
+    const n = Number(s.n);
+    const ms = Number(s.t);
+    if (n > 0 && ms >= 0) {
+      t.n = (t.n || 0) + n;
+      t.t = (t.t || 0) + ms;
+    }
   }
   return into;
 }
@@ -67,11 +74,28 @@ export const setPref = (k, v) => change(() => (state.prefs[k] = v));
 const recordListeners = new Set();
 const remoteListeners = new Set();
 
-export function record(key, ok) {
+// 每個假名的紀錄：c 答對次數、w 答錯次數、t / n 最近幾次答對花的時間總和（毫秒）和次數。
+// ms 是這一題從出現到作答花的時間，只有答對時才計入；發呆太久的不算。
+const TIME_WINDOW = 5; // 作答時間只看最近大約 5 次，變快之後很快就會反映出來
+const TIME_CAP = 10000;
+const TIME_IGNORE = 30000;
+export const SLOW_MS = 3000; // 平均超過這個時間就算「答對但還不熟」
+
+export function record(key, ok, ms) {
   change(() => {
     const s = state.stats[key] || (state.stats[key] = { c: 0, w: 0 });
     if (ok) s.c++;
     else s.w++;
+    if (ok && ms > 0 && ms < TIME_IGNORE) {
+      let n = Number(s.n) || 0;
+      let t = Number(s.t) || 0;
+      if (n >= TIME_WINDOW) {
+        t = (t / n) * (TIME_WINDOW - 1);
+        n = TIME_WINDOW - 1;
+      }
+      s.n = n + 1;
+      s.t = Math.round(t + Math.min(ms, TIME_CAP));
+    }
   });
   recompute();
   recordListeners.forEach((fn) => fn());
@@ -79,15 +103,28 @@ export function record(key, ok) {
 
 export const getStat = (key) => total[key] || null;
 
+// 最近答對時平均花幾毫秒，沒有紀錄回傳 null
+export function avgTime(key) {
+  const s = total[key];
+  return s?.n > 0 ? s.t / s.n : null;
+}
+
+export const isSlow = (key) => avgTime(key) > SLOW_MS;
+
 // new 未練習 / learning 練習中 / weak 常答錯 / good 已熟練
+// 答對率夠高但想很久才答出來的，還是算「練習中」
 export function mastery(key) {
   const s = total[key];
   if (!s) return 'new';
   const acc = s.c / (s.c + s.w);
-  if (s.c >= 3 && acc >= 0.8) return 'good';
   if (acc < 0.6) return 'weak';
+  if (s.c >= 3 && acc >= 0.8 && !isSlow(key)) return 'good';
   return 'learning';
 }
+
+// 出題權重：越不熟的假名越常出現
+const WEIGHT = { weak: 4, new: 3, learning: 2, good: 1 };
+export const weight = (key) => WEIGHT[mastery(key)];
 
 // 答錯過、還沒熟練的假名，錯越多排越前面
 export function weakKeys(limit = 20) {
