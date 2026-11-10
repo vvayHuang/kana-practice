@@ -88,7 +88,7 @@ const LOOKALIKE = {
   kata: ['シツ', 'ソンノ', 'シン', 'ツソ', 'クタケ', 'クワウフ', 'コユヨロ', 'スヌ', 'フラヲワ', 'チテ', 'ナメノ', 'マムア', 'ルレ', 'セヤサ', 'オホ', 'エユ'],
 };
 
-const toHiragana = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+export const toHiragana = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
 const LOOK_MAP = Object.fromEntries(
   Object.entries(LOOKALIKE).map(([script, groups]) => {
