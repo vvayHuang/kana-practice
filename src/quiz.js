@@ -90,11 +90,11 @@ const seg = (field, opts, cur) => `
       .join('')}
   </div>`;
 
-function resultMessage(pct) {
-  if (pct === 100) return '全對！太厲害了！';
-  if (pct >= 80) return '很棒，快要熟練了！';
-  if (pct >= 50) return '不錯喔，再多練幾次會更熟。';
-  return '慢慢來，先回五十音表看一看也很好。';
+function resultMessage(pct, word) {
+  if (pct === 100) return word ? '全對！這些單字都記住了！' : '全對！太厲害了！';
+  if (pct >= 80) return word ? '很棒，大部分單字都認得了！' : '很棒，快要熟練了！';
+  if (pct >= 50) return word ? '不錯喔，再多練幾次就記得住。' : '不錯喔，再多練幾次會更熟。';
+  return word ? '慢慢來，單字多看幾次就會記住。' : '慢慢來，先回五十音表看一看也很好。';
 }
 
 export function mountQuiz(root) {
@@ -359,10 +359,10 @@ export function mountQuiz(root) {
   function drawResult() {
     const n = game.qs.length;
     const pct = Math.round((game.score / n) * 100);
+    const word = isWord(game.qs[0].item);
     const misses = uniqBy(game.mistakes, qKey);
     const missed = new Set(misses.map(qKey));
     const slows = uniqBy(game.slow, qKey).filter((q) => !missed.has(qKey(q)));
-    const word = isWord(game.qs[0].item);
     const noun = word ? '單字' : '假名';
     const kanaList = (qs) => `<ul class="miss">
       ${qs
@@ -377,7 +377,7 @@ export function mountQuiz(root) {
       <section class="card result">
         <p class="result-label">${game.kind === 'review' ? '複習完成' : '測驗完成'}</p>
         <div class="score">${game.score}<small> / ${n}</small></div>
-        <p class="msg">${resultMessage(pct)}</p>
+        <p class="msg">${resultMessage(pct, word)}</p>
         <div class="stats-row">
           <div><b>${pct}%</b><span>正確率</span></div>
           <div><b>${game.best}</b><span>最多連續答對</span></div>
