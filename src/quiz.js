@@ -1,5 +1,5 @@
-import { GROUPS, ALL, BY_KANA, toKatakana, display, keyOf } from './kana.js';
-import { getPref, setPref, record, weakKeys, onStatsChange } from './store.js';
+import { GROUPS, ALL, BY_KANA, toKatakana, display, keyOf, confusables } from './kana.js';
+import { getPref, setPref, record, weakKeys, weight, onStatsChange, SLOW_MS } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -26,18 +26,34 @@ const uniqBy = (arr, f) => {
   });
 };
 
-// 干擾選項：拼音不能和答案相同（じ／ぢ 都念 ji），長度相同（拗音配拗音），
-// 優先從目前範圍挑，不夠再從全部假名補。
+// 依權重抽 n 題（不重複）：不熟的假名權重高，比較容易被抽到
+function pickWeighted(qs, n) {
+  return qs
+    .map((q) => ({ q, r: Math.random() ** (1 / weight(keyOf(q.item, q.script))) }))
+    .sort((a, b) => b.r - a.r)
+    .slice(0, n)
+    .map((x) => x.q);
+}
+
+// 干擾選項：拼音不能和答案相同（じ／ぢ 都念 ji），長度相同（拗音配拗音）。
+// 優先挑容易混淆的：先放長得像的（ぬ／め、シ／ツ），再補念起來像的（同一行或同一段），
+// 剩下的從目前範圍隨機挑，不夠再從全部假名補。混淆的假名也只從目前範圍裡找。
 function makeOptions(q, pool) {
-  const fits = (i) => i.romaji !== q.item.romaji && i.kana.length === q.item.kana.length;
-  let cands = uniqBy(shuffle(pool.filter(fits)), (i) => i.romaji);
-  if (cands.length < 3) {
-    const extra = uniqBy(shuffle(ALL.filter(fits)), (i) => i.romaji).filter(
-      (i) => !cands.some((c) => c.romaji === i.romaji),
-    );
-    cands = cands.concat(extra);
-  }
-  return shuffle([q.item, ...cands.slice(0, 3)]);
+  const inPool = new Set(pool);
+  const picks = [];
+  const add = (list, max) => {
+    for (const i of shuffle(list)) {
+      if (picks.length >= max) return;
+      if (i.romaji === q.item.romaji || i.kana.length !== q.item.kana.length) continue;
+      if (!picks.some((p) => p.romaji === i.romaji)) picks.push(i);
+    }
+  };
+  const { look, sound } = confusables(q.item, q.script);
+  add(look.filter((i) => inPool.has(i)), 3);
+  add(sound.filter((i) => inPool.has(i)), 2);
+  add(pool, 3);
+  add(ALL, 3);
+  return shuffle([q.item, ...picks]);
 }
 
 const seg = (field, opts, cur) => `
@@ -101,6 +117,8 @@ export function mountQuiz(root) {
       answered: false,
       picked: -1,
       mistakes: [],
+      slow: [], // 答對但想比較久的
+      shownAt: performance.now(),
     };
     screen = 'play';
     draw();
@@ -109,8 +127,8 @@ export function mountQuiz(root) {
   function startFromCfg() {
     const items = selectedItems();
     if (!items.length) return;
-    let qs = shuffle(items.flatMap((item) => scriptsFor(cfg.script).map((script) => ({ item, script }))));
-    if (cfg.length !== 'all') qs = qs.slice(0, cfg.length);
+    let qs = items.flatMap((item) => scriptsFor(cfg.script).map((script) => ({ item, script })));
+    if (cfg.length !== 'all' && qs.length > cfg.length) qs = pickWeighted(qs, cfg.length);
     start(qs, items, 'normal');
   }
 
@@ -126,8 +144,10 @@ export function mountQuiz(root) {
     const ok = q.options[idx].kana === q.item.kana;
     game.answered = true;
     game.picked = idx;
-    record(keyOf(q.item, q.script), ok);
+    const ms = performance.now() - game.shownAt;
+    record(keyOf(q.item, q.script), ok, ms);
     if (ok) {
+      if (ms > SLOW_MS) game.slow.push(q);
       game.score++;
       game.streak++;
       game.best = Math.max(game.best, game.streak);
@@ -146,6 +166,7 @@ export function mountQuiz(root) {
     game.i++;
     game.answered = false;
     game.picked = -1;
+    game.shownAt = performance.now();
     if (game.i >= game.qs.length) screen = 'result';
     draw();
   }
@@ -277,6 +298,11 @@ export function mountQuiz(root) {
     const n = game.qs.length;
     const pct = Math.round((game.score / n) * 100);
     const misses = uniqBy(game.mistakes, (q) => keyOf(q.item, q.script));
+    const missed = new Set(misses.map((q) => keyOf(q.item, q.script)));
+    const slows = uniqBy(game.slow, (q) => keyOf(q.item, q.script)).filter((q) => !missed.has(keyOf(q.item, q.script)));
+    const kanaList = (qs) => `<ul class="miss">
+      ${qs.map((q) => `<li><span class="k" lang="ja">${display(q.item, q.script)}</span><span class="r">${q.item.romaji}</span></li>`).join('')}
+    </ul>`;
     el.innerHTML = `
       <section class="card result">
         <p class="result-label">${game.kind === 'review' ? '複習完成' : '測驗完成'}</p>
@@ -286,16 +312,8 @@ export function mountQuiz(root) {
           <div><b>${pct}%</b><span>正確率</span></div>
           <div><b>${game.best}</b><span>最多連續答對</span></div>
         </div>
-        ${
-          misses.length
-            ? `<h3>答錯的假名</h3>
-              <ul class="miss">
-                ${misses
-                  .map((q) => `<li><span class="k" lang="ja">${display(q.item, q.script)}</span><span class="r">${q.item.romaji}</span></li>`)
-                  .join('')}
-              </ul>`
-            : ''
-        }
+        ${misses.length ? `<h3>答錯的假名</h3>${kanaList(misses)}` : ''}
+        ${slows.length ? `<h3>答對但想比較久的假名</h3>${kanaList(slows)}<p class="result-note">多練幾次、答得更快就算熟練了。</p>` : ''}
         <div class="actions">
           ${misses.length ? '<button type="button" class="btn primary" data-act="retry-miss">再練一次答錯的</button>' : ''}
           <button type="button" class="btn ${misses.length ? '' : 'primary'}" data-act="again">再來一輪</button>
