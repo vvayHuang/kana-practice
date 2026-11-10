@@ -720,6 +720,12 @@ button {
   cursor: pointer;
 }
 
+.range-note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
 .empty-hint {
   margin: 8px 0 0;
   text-align: center;
@@ -800,6 +806,20 @@ button {
   line-height: 1.2;
 }
 
+/* 單字：字數越多字越小，一行放得下 */
+.prompt-main.kana.word {
+  margin: 18px 0 14px;
+  font-size: min(68px, calc(72vw / var(--n, 4)), calc(430px / var(--n, 4)));
+  white-space: nowrap;
+}
+
+.prompt-main.meaning {
+  margin: 18px 0 14px;
+  font-size: clamp(36px, 11vw, 56px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .prompt-main.romaji {
   margin: 14px 0 10px;
   font-size: clamp(54px, 17vw, 80px);
@@ -843,10 +863,19 @@ button {
   transition: border-color 0.15s, background-color 0.15s, opacity 0.15s, transform 0.1s;
 }
 
+.options.words .opt {
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+
 .opt .opt-label[lang='ja'] {
   font-family: var(--font-kana);
   font-size: 34px;
   font-weight: 600;
+}
+
+.options.words .opt .opt-label[lang='ja'] {
+  font-size: 21px;
 }
 
 .opt .num {

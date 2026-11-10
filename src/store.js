@@ -79,7 +79,10 @@ const remoteListeners = new Set();
 const TIME_WINDOW = 5; // 作答時間只看最近大約 5 次，變快之後很快就會反映出來
 const TIME_CAP = 10000;
 const TIME_IGNORE = 30000;
-export const SLOW_MS = 3000; // 平均超過這個時間就算「答對但還不熟」
+const SLOW_MS = 3000; // 平均超過這個時間就算「答對但還不熟」
+// 單字的紀錄用 word: 開頭；單字比較長，時間放寬一倍
+const isWordKey = (key) => key.startsWith('word:');
+export const slowLimit = (key) => (isWordKey(key) ? SLOW_MS * 2 : SLOW_MS);
 
 export function record(key, ok, ms) {
   change(() => {
@@ -109,7 +112,7 @@ export function avgTime(key) {
   return s?.n > 0 ? s.t / s.n : null;
 }
 
-export const isSlow = (key) => avgTime(key) > SLOW_MS;
+export const isSlow = (key) => avgTime(key) > slowLimit(key);
 
 // new 未練習 / learning 練習中 / weak 常答錯 / good 已熟練
 // 答對率夠高但想很久才答出來的，還是算「練習中」
@@ -126,10 +129,10 @@ export function mastery(key) {
 const WEIGHT = { weak: 4, new: 3, learning: 2, good: 1 };
 export const weight = (key) => WEIGHT[mastery(key)];
 
-// 答錯過、還沒熟練的假名，錯越多排越前面
+// 答錯過、還沒熟練的假名，錯越多排越前面（不含單字）
 export function weakKeys(limit = 20) {
   return Object.entries(total)
-    .filter(([key, s]) => s.w > 0 && mastery(key) !== 'good')
+    .filter(([key, s]) => !isWordKey(key) && s.w > 0 && mastery(key) !== 'good')
     .sort(([, a], [, b]) => b.w - b.c - (a.w - a.c) || b.w - a.w)
     .slice(0, limit)
     .map(([key]) => key);
