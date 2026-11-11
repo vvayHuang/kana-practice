@@ -74,13 +74,13 @@ export function renderChart(root) {
         <label class="check"><input type="checkbox" data-act="romaji" ${showRomaji ? 'checked' : ''} /> 顯示拼音</label>
       </div>
       <p class="hint">點一下假名就能聽發音，看平假名和片假名的對照。</p>
-      ${SECTIONS.map(sectionHTML).join('')}
       <div class="legend">
         <span><i class="dot good"></i>已熟練</span>
         <span><i class="dot learning"></i>練習中（含答對但較慢）</span>
         <span><i class="dot weak"></i>常答錯</span>
         <span class="muted">做完測驗後會標在表格上</span>
       </div>
+      ${SECTIONS.map(sectionHTML).join('')}
       <div class="detail" ${selected ? '' : 'hidden'}>${selected ? detailHTML(selected) : ''}</div>`;
   }
 

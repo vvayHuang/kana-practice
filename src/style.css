@@ -547,6 +547,11 @@ button {
   color: var(--ink-2);
 }
 
+/* 圖例接在提示文字下面、表格上面 */
+.hint + .legend {
+  margin: -8px 0 20px;
+}
+
 .legend span {
   display: inline-flex;
   align-items: center;

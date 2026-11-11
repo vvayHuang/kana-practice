@@ -116,18 +116,24 @@ export const isSlow = (key) => avgTime(key) > slowLimit(key);
 
 // new 未練習 / learning 練習中 / weak 常答錯 / good 已熟練
 // 答對率夠高但想很久才答出來的，還是算「練習中」
+// 只錯過一次還不算「常答錯」，至少錯兩次才算
 export function mastery(key) {
   const s = total[key];
   if (!s) return 'new';
   const acc = s.c / (s.c + s.w);
-  if (acc < 0.6) return 'weak';
+  if (acc < 0.6 && s.w >= 2) return 'weak';
   if (s.c >= 3 && acc >= 0.8 && !isSlow(key)) return 'good';
   return 'learning';
 }
 
 // 出題權重：越不熟的假名越常出現
 const WEIGHT = { weak: 4, new: 3, learning: 2, good: 1 };
-export const weight = (key) => WEIGHT[mastery(key)];
+// 只錯過一次的假名畫面上標「練習中」，但出題時還是當成不熟的，要多出現
+export function weight(key) {
+  const s = total[key];
+  if (s && s.c / (s.c + s.w) < 0.6) return WEIGHT.weak;
+  return WEIGHT[mastery(key)];
+}
 
 // 答錯過、還沒熟練的假名，錯越多排越前面（不含單字）
 export function weakKeys(limit = 20) {

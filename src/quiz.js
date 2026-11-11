@@ -113,7 +113,7 @@ export function mountQuiz(root) {
   let screen = 'setup';
   let game = null;
   let timer = null;
-  let weakShown = -1; // 設定畫面上「複習常錯」顯示的數量
+  let weakShown = -1; // 設定畫面上「複習答錯過的假名」顯示的數量
 
   const saveCfg = () => {
     setPref('quizContent', cfg.content);
@@ -235,8 +235,8 @@ export function mountQuiz(root) {
         weak.length
           ? `<section class="card review-card">
               <div>
-                <h2>複習常錯的假名</h2>
-                <p>有 ${weak.length} 個假名比較常答錯，先把它們練熟吧。</p>
+                <h2>複習答錯過的假名</h2>
+                <p>有 ${weak.length} 個假名答錯過、還沒練熟，先把它們練熟吧。</p>
               </div>
               <button type="button" class="btn primary" data-act="review">開始複習</button>
             </section>`
@@ -473,7 +473,7 @@ export function mountQuiz(root) {
   };
   document.addEventListener('keydown', onKey);
 
-  // 其他裝置的紀錄同步進來時，設定畫面的「複習常錯的假名」可能要更新
+  // 其他裝置的紀錄同步進來時，設定畫面的「複習答錯過的假名」可能要更新
   const offStats = onStatsChange(() => {
     if (screen === 'setup' && weakQuestions().length !== weakShown) draw();
   });
