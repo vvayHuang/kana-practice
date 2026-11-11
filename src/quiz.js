@@ -90,6 +90,41 @@ const seg = (field, opts, cur) => `
       .join('')}
   </div>`;
 
+// 例句裡把這個單字標出來；い形容詞常會變化（からい → からくて），找不到整個字就標字幹
+function markWord(ex, w) {
+  const word = show(w, w.script);
+  const hit = ex.includes(word) ? word : w.dict.pos === 'い形容詞' ? word.slice(0, -1) : '';
+  return hit ? ex.replace(hit, `<b>${hit}</b>`) : ex;
+}
+
+// 單字答題後，題目下方的字典解釋：意思、念法、詞性、漢字或來源、使用情境、例句。
+// 題目已經大大顯示的東西（單字本身或意思）就不再重複。
+function entryHTML(w, mode) {
+  const d = w.dict;
+  const head =
+    mode === 'pick'
+      ? `<span class="entry-word" lang="ja">${show(w, w.script)}</span><span class="entry-romaji">${w.romaji}</span>`
+      : `<span class="entry-zh">${w.zh}</span><span class="entry-romaji">${w.romaji}</span>`;
+  if (!d) return `<div class="entry"><div class="entry-head">${head}</div></div>`;
+  const kata = w.script === 'kata';
+  return `
+    <div class="entry">
+      <div class="entry-head">${head}</div>
+      <div class="entry-tags">
+        <span class="tag">${d.pos}</span>
+        ${d.origin ? `<span class="tag">${kata ? '來源' : '漢字'} <b${kata ? '' : ' lang="ja"'}>${d.origin}</b></span>` : ''}
+      </div>
+      <p class="entry-label">使用情境</p>
+      <p class="entry-note">${d.note}</p>
+      <div class="entry-label">
+        例句
+        <button type="button" class="icon-btn plain small" data-act="speak-ex" aria-label="播放例句">${icons.volume}</button>
+      </div>
+      <p class="ex-ja" lang="ja">${markWord(d.ex, w)}</p>
+      <p class="ex-zh">${d.exZh}</p>
+    </div>`;
+}
+
 function resultMessage(pct, word) {
   if (pct === 100) return word ? '全對！這些單字都記住了！' : '全對！太厲害了！';
   if (pct >= 80) return word ? '很棒，大部分單字都認得了！' : '很棒，快要熟練了！';
@@ -202,8 +237,8 @@ export function mountQuiz(root) {
     }
     say(show(q.item, q.script));
     draw();
-    // 單字答對後會顯示念法和意思，多停一下讓人看完
-    if (ok) timer = setTimeout(next, isWord(q.item) ? 1800 : 900);
+    // 假名答對會自動跳下一題；單字要看解釋，等使用者自己按「下一題」
+    if (ok && !isWord(q.item)) timer = setTimeout(next, 900);
   }
 
   function next() {
@@ -285,15 +320,22 @@ export function mountQuiz(root) {
     const picked = q.options[game.picked];
     const last = game.i + 1 >= game.qs.length;
     const word = isWord(q.item);
-    // 單字一律把假名、拼音、意思都列出來
-    const full = (i) => `<b lang="ja">${show(i, q.script)}</b> ${i.romaji}${word ? `（${i.zh}）` : ''}`;
-    const text = ok
-      ? `<div class="fb-text ok">${icons.check}<span>答對了！${word ? ` <small>${full(q.item)}</small>` : ''}</span></div>`
-      : `<div class="fb-text bad">
-          <span>答案是 ${full(q.item)}</span>
-          <small>你選的 ${word ? full(picked) : `<b lang="ja">${show(picked, q.script)}</b> 念 ${picked.romaji}`}</small>
+    const kana = (i) => `<b lang="ja">${show(i, q.script)}</b>`;
+    let text;
+    if (ok) text = `<div class="fb-text ok">${icons.check}<span>答對了！</span></div>`;
+    // 單字的正確答案已經寫在題目下方的解釋裡，這裡只說選到的是什麼
+    else if (word)
+      text = `<div class="fb-text bad">
+          <span>答錯了</span>
+          <small>你選的是 ${kana(picked)} ${picked.romaji}（${picked.zh}）</small>
         </div>`;
-    return `${text}<button type="button" class="btn ${ok ? 'ghost' : 'primary'}" data-act="next">${
+    else
+      text = `<div class="fb-text bad">
+          <span>答案是 ${kana(q.item)} ${q.item.romaji}</span>
+          <small>你選的 ${kana(picked)} 念 ${picked.romaji}</small>
+        </div>`;
+    // 假名答對會自動跳題，按鈕淡一點；其他情況都要自己按，用主要按鈕
+    return `${text}<button type="button" class="btn ${ok && !word ? 'ghost' : 'primary'}" data-act="next">${
       last ? '看結果' : '下一題'
     } ${icons.arrow}</button>`;
   }
@@ -315,6 +357,8 @@ export function mountQuiz(root) {
     const correctIdx = q.options.findIndex((o) => o.kana === q.item.kana);
     const ok = game.answered && game.picked === correctIdx;
     const done = game.i + (game.answered ? 1 : 0);
+    const word = isWord(q.item);
+    const explain = word && game.answered; // 單字答完：題目下方顯示字典解釋
 
     el.innerHTML = `
       <div class="play">
@@ -326,7 +370,7 @@ export function mountQuiz(root) {
           <span class="counter">${game.i + 1} / ${n}</span>
         </div>
 
-        <section class="card prompt">
+        <section class="card prompt${explain ? ' answered' : ''}">
           <p class="prompt-label">${view.label}</p>
           <div class="prompt-main ${view.cls}"${showsKana ? ` lang="ja" style="--n:${[...shown].length}"` : ''}>${view.main}</div>
           ${
@@ -334,10 +378,11 @@ export function mountQuiz(root) {
               ? `<button type="button" class="icon-btn speak" data-act="speak" aria-label="播放發音">${icons.volume}</button>`
               : ''
           }
-          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : '&nbsp;'}</p>
+          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : explain ? '' : '&nbsp;'}</p>
+          ${explain ? entryHTML(q.item, mode) : ''}
         </section>
 
-        <div class="options${isWord(q.item) ? ' words' : ''}">
+        <div class="options${word ? ' words' : ''}">
           ${q.options
             .map((o, idx) => {
               let state = '';
@@ -350,10 +395,11 @@ export function mountQuiz(root) {
             .join('')}
         </div>
 
-        <div class="feedback" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
+        <div class="feedback${explain ? ' sticky' : ''}" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
       </div>`;
 
-    if (game.answered && !ok) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
+    // 不會自動跳題時，把焦點放到「下一題」，鍵盤直接按 Enter 就好
+    if (game.answered && (!ok || word)) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
   }
 
   function drawResult() {
@@ -438,6 +484,7 @@ export function mountQuiz(root) {
         case 'review': return startReview();
         case 'next': return next();
         case 'speak': return q && say(show(q.item, q.script), { force: true });
+        case 'speak-ex': return q?.item.dict && say(q.item.dict.ex, { force: true });
         case 'again': return game.kind === 'review' ? startReview() : startFromCfg();
         case 'retry-miss': {
           const qs = uniqBy(game.mistakes, qKey).map(({ item, script }) => ({ item, script }));
