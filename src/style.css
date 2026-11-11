@@ -205,6 +205,52 @@ button {
   padding-bottom: 140px;
 }
 
+/* 手機上把頁首收成一列：標誌、分頁、右邊的按鈕。標題文字只留給螢幕閱讀器 */
+@media (max-width: 560px) {
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .top-inner {
+    display: contents;
+  }
+
+  .brand > div {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tabs {
+    order: 1;
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tabs a {
+    padding: 8px 4px;
+    white-space: nowrap;
+  }
+
+  .top-actions {
+    order: 2;
+  }
+}
+
+@media (max-width: 360px) {
+  .tabs a {
+    font-size: 14px;
+  }
+}
+
 /* ---------- 共用元件 ---------- */
 
 .icon-btn {
@@ -521,21 +567,29 @@ button {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 7px;
-  height: 7px;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
-.cell.m-good::after {
+/* 熟練度記號：顏色之外形狀也不同，分不清顏色的人也看得出來
+   已熟練＝實心圓、練習中＝空心圓、常答錯＝菱形 */
+.cell.m-good::after,
+.dot.good {
   background: var(--ok);
 }
 
-.cell.m-learning::after {
-  background: var(--mid);
+.cell.m-learning::after,
+.dot.learning {
+  border: 2px solid var(--mid);
 }
 
-.cell.m-weak::after {
+.cell.m-weak::after,
+.dot.weak {
   background: var(--bad);
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
 .legend {
@@ -547,6 +601,11 @@ button {
   color: var(--ink-2);
 }
 
+/* 圖例接在提示文字下面、表格上面 */
+.hint + .legend {
+  margin: -8px 0 20px;
+}
+
 .legend span {
   display: inline-flex;
   align-items: center;
@@ -555,21 +614,43 @@ button {
 
 .dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
-.dot.good {
-  background: var(--ok);
+/* 第一次來的人看到的引導 */
+.start-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--accent-soft);
+  border-color: transparent;
 }
 
-.dot.learning {
-  background: var(--mid);
+.start-card h2 {
+  margin: 0;
+  font-size: 16px;
 }
 
-.dot.weak {
-  background: var(--bad);
+.start-card p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.start-card .btn {
+  flex: none;
+  text-decoration: none;
+}
+
+@media (max-width: 420px) {
+  .start-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* 點假名後出現的對照卡 */
@@ -697,6 +778,20 @@ button {
   font-size: 16px;
 }
 
+/* 行名旁邊的拼音（あ行 a、か行 ka），不認得假名的人也看得懂是哪一行 */
+.chip-r {
+  margin-left: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.chip[aria-pressed='true'] .chip-r {
+  color: inherit;
+  opacity: 0.85;
+}
+
 .chip[aria-pressed='true'] {
   background: var(--accent);
   border-color: var(--accent);
@@ -707,6 +802,23 @@ button {
   display: flex;
   gap: 4px;
   margin-top: 10px;
+}
+
+/* 觸控裝置上把小按鈕放大到好按的高度 */
+@media (pointer: coarse) {
+  .tabs a,
+  .seg button,
+  .chip,
+  .link-btn {
+    min-height: 44px;
+  }
+
+  .tabs a,
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .link-btn {
@@ -726,31 +838,16 @@ button {
   color: var(--ink-3);
 }
 
+.range-note.weak-note {
+  color: var(--bad);
+  font-weight: 600;
+}
+
 .empty-hint {
   margin: 8px 0 0;
   text-align: center;
   font-size: 13px;
   color: var(--ink-3);
-}
-
-.review-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  background: var(--accent-soft);
-  border-color: transparent;
-}
-
-.review-card h2 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.review-card p {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--ink-2);
 }
 
 /* ---------- 作答中 ---------- */
@@ -840,6 +937,126 @@ button {
   font-size: 13px;
   font-weight: 700;
   color: var(--accent);
+}
+
+.prompt-meta:empty {
+  display: none;
+}
+
+/* ---------- 單字答題後的字典解釋（在題目下方） ---------- */
+
+.prompt.answered .prompt-main.word {
+  margin: 6px 0 2px;
+  font-size: min(48px, calc(60vw / var(--n, 4)), calc(330px / var(--n, 4)));
+}
+
+.prompt.answered .prompt-main.meaning {
+  margin: 6px 0 2px;
+  font-size: clamp(30px, 9vw, 40px);
+}
+
+.entry {
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+  text-align: left;
+  animation: slide-up 0.2s ease-out;
+}
+
+.entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+
+.entry-zh {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.entry-word {
+  font-family: var(--font-kana);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1.25;
+}
+
+.entry-romaji {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
+.entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tag b {
+  margin-left: 2px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.entry-label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 20px;
+  margin: 16px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.entry-note {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* 例句旁的小喇叭：按鈕本身 36px 好按，但不把標題撐高 */
+.icon-btn.small {
+  width: 36px;
+  height: 36px;
+  margin: -8px 0;
+}
+
+/* 例句的詞和詞之間有空格，只在空格處換行，不會把一個詞拆成兩行 */
+.ex-ja {
+  margin: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  font-family: var(--font-kana);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.ex-ja b {
+  font-weight: inherit;
+  color: var(--accent);
+}
+
+.ex-zh {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--ink-2);
 }
 
 .options {
@@ -932,6 +1149,19 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* 單字答題後解釋比較長，「下一題」固定在畫面下方，不用捲動去找 */
+.feedback.sticky {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  min-height: 0;
+  padding: 10px 10px 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.16);
 }
 
 .fb-text {

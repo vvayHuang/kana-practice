@@ -1,6 +1,6 @@
-import { GROUPS, ALL, BY_KANA, toKatakana, display, keyOf, confusables } from './kana.js';
+import { GROUPS, ALL, toKatakana, display, keyOf, confusables } from './kana.js';
 import { WORDS } from './words.js';
-import { getPref, setPref, record, weakKeys, weight, onStatsChange, slowLimit } from './store.js';
+import { getPref, setPref, record, mastery, getStat, weight, onStatsChange, slowLimit } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -42,6 +42,20 @@ function pickWeighted(qs, n) {
     .sort((a, b) => b.r - a.r)
     .slice(0, n)
     .map((x) => x.q);
+}
+
+// 常答錯的題目（和五十音表上紅點的標準一樣）。答對幾次、正確率回升後就不算了。
+const isWeak = (q) => mastery(qKey(q)) === 'weak';
+
+// 出題：範圍裡常答錯的一定會出（最多佔一半，錯越多的越優先），剩下的依熟練度加權抽
+function pickQuestions(qs, length) {
+  if (length === 'all' || qs.length <= length) return qs;
+  const misses = (q) => getStat(qKey(q)).w - getStat(qKey(q)).c;
+  const weak = shuffle(qs.filter(isWeak))
+    .sort((a, b) => misses(b) - misses(a))
+    .slice(0, Math.ceil(length / 2));
+  const rest = qs.filter((q) => !weak.includes(q));
+  return [...weak, ...pickWeighted(rest, length - weak.length)];
 }
 
 // 干擾選項：拼音不能和答案相同（じ／ぢ 都念 ji），長度相同（拗音配拗音）。
@@ -90,6 +104,41 @@ const seg = (field, opts, cur) => `
       .join('')}
   </div>`;
 
+// 例句裡把這個單字標出來；い形容詞常會變化（からい → からくて），找不到整個字就標字幹
+function markWord(ex, w) {
+  const word = show(w, w.script);
+  const hit = ex.includes(word) ? word : w.dict.pos === 'い形容詞' ? word.slice(0, -1) : '';
+  return hit ? ex.replace(hit, `<b>${hit}</b>`) : ex;
+}
+
+// 單字答題後，題目下方的字典解釋：意思、念法、詞性、漢字或來源、使用情境、例句。
+// 題目已經大大顯示的東西（單字本身或意思）就不再重複。
+function entryHTML(w, mode) {
+  const d = w.dict;
+  const head =
+    mode === 'pick'
+      ? `<span class="entry-word" lang="ja">${show(w, w.script)}</span><span class="entry-romaji">${w.romaji}</span>`
+      : `<span class="entry-zh">${w.zh}</span><span class="entry-romaji">${w.romaji}</span>`;
+  if (!d) return `<div class="entry"><div class="entry-head">${head}</div></div>`;
+  const kata = w.script === 'kata';
+  return `
+    <div class="entry">
+      <div class="entry-head">${head}</div>
+      <div class="entry-tags">
+        <span class="tag">${d.pos}</span>
+        ${d.origin ? `<span class="tag">${kata ? '來源' : '漢字'} <b${kata ? '' : ' lang="ja"'}>${d.origin}</b></span>` : ''}
+      </div>
+      <p class="entry-label">使用情境</p>
+      <p class="entry-note">${d.note}</p>
+      <div class="entry-label">
+        例句
+        <button type="button" class="icon-btn plain small" data-act="speak-ex" aria-label="播放例句">${icons.volume}</button>
+      </div>
+      <p class="ex-ja" lang="ja">${markWord(d.ex, w)}</p>
+      <p class="ex-zh">${d.exZh}</p>
+    </div>`;
+}
+
 function resultMessage(pct, word) {
   if (pct === 100) return word ? '全對！這些單字都記住了！' : '全對！太厲害了！';
   if (pct >= 80) return word ? '很棒，大部分單字都認得了！' : '很棒，快要熟練了！';
@@ -113,7 +162,7 @@ export function mountQuiz(root) {
   let screen = 'setup';
   let game = null;
   let timer = null;
-  let weakShown = -1; // 設定畫面上「複習常錯」顯示的數量
+  let weakShown = -1; // 設定畫面上顯示的「常答錯」數量
 
   const saveCfg = () => {
     setPref('quizContent', cfg.content);
@@ -133,20 +182,23 @@ export function mountQuiz(root) {
     return WORDS.filter((w) => scripts.includes(w.script) && w.kinds.every((k) => known.has(k)));
   };
 
-  const weakQuestions = () =>
-    weakKeys(20)
-      .map((k) => {
-        const [script, kana] = k.split(':');
-        return BY_KANA[kana] && SCRIPT_NAME[script] ? { item: BY_KANA[kana], script } : null;
-      })
-      .filter(Boolean);
+  // 目前設定下所有可能的題目
+  function cfgQuestions() {
+    if (cfg.content === 'word') {
+      const words = selectedWords();
+      const qs = words.map((item) => ({ item, script: item.script }));
+      return { qs, pool: words, mode: cfg.wordMode, ready: words.length >= WORD_MIN };
+    }
+    const items = selectedItems();
+    const qs = items.flatMap((item) => scriptsFor(cfg.script).map((script) => ({ item, script })));
+    return { qs, pool: items, mode: cfg.mode, ready: items.length > 0 };
+  }
 
-  function start(questions, pool, kind, mode) {
+  function start(questions, pool, mode) {
     clearTimeout(timer);
     game = {
       qs: shuffle(questions).map((q) => ({ ...q, options: (isWord(q.item) ? makeWordOptions : makeOptions)(q, pool) })),
       pool,
-      kind,
       mode, // k2r / r2k（假名）或 read / mean / pick（單字）
       i: 0,
       score: 0,
@@ -163,23 +215,8 @@ export function mountQuiz(root) {
   }
 
   function startFromCfg() {
-    if (cfg.content === 'word') {
-      const words = selectedWords();
-      if (words.length < WORD_MIN) return;
-      let qs = words.map((item) => ({ item, script: item.script }));
-      if (cfg.length !== 'all' && qs.length > cfg.length) qs = pickWeighted(qs, cfg.length);
-      return start(qs, words, 'normal', cfg.wordMode);
-    }
-    const items = selectedItems();
-    if (!items.length) return;
-    let qs = items.flatMap((item) => scriptsFor(cfg.script).map((script) => ({ item, script })));
-    if (cfg.length !== 'all' && qs.length > cfg.length) qs = pickWeighted(qs, cfg.length);
-    start(qs, items, 'normal', cfg.mode);
-  }
-
-  function startReview() {
-    const qs = weakQuestions();
-    if (qs.length) start(qs, ALL, 'review', cfg.mode);
+    const { qs, pool, mode, ready } = cfgQuestions();
+    if (ready) start(pickQuestions(qs, cfg.length), pool, mode);
   }
 
   function answer(idx) {
@@ -202,8 +239,8 @@ export function mountQuiz(root) {
     }
     say(show(q.item, q.script));
     draw();
-    // 單字答對後會顯示念法和意思，多停一下讓人看完
-    if (ok) timer = setTimeout(next, isWord(q.item) ? 1800 : 900);
+    // 假名答對會自動跳下一題；單字要看解釋，等使用者自己按「下一題」
+    if (ok && !isWord(q.item)) timer = setTimeout(next, 900);
   }
 
   function next() {
@@ -222,26 +259,21 @@ export function mountQuiz(root) {
   function drawSetup() {
     const items = selectedItems();
     const wordMode = cfg.content === 'word';
-    const words = wordMode ? selectedWords() : [];
-    const total = wordMode ? words.length : items.length * scriptsFor(cfg.script).length;
-    const ready = wordMode ? words.length >= WORD_MIN : items.length > 0;
+    const noun = wordMode ? '單字' : '假名';
+    const { qs, ready } = cfgQuestions();
+    const words = wordMode ? qs.length : 0;
+    const total = qs.length;
+    const weak = qs.filter(isWeak).length;
+    // 題數比範圍內的題目還多的選項不列出來（選了也出不滿）；原本選的題數出不滿時，顯示成「全部」
+    const lengths = {};
+    for (const n of [10, 20]) if (n < total) lengths[n] = `${n} 題`;
+    lengths.all = `全部 ${total} 題`;
+    const lengthOn = cfg.length !== 'all' && cfg.length < total ? cfg.length : 'all';
+    weakShown = weak;
     const emptyHint = wordMode ? '這個範圍能組成的單字太少，多選幾行吧' : '先選至少一個範圍喔';
-    const weak = weakQuestions();
-    weakShown = weak.length;
     const label = (g) => (cfg.script === 'kata' ? toKatakana(g.label) : g.label);
 
     el.innerHTML = `
-      ${
-        weak.length
-          ? `<section class="card review-card">
-              <div>
-                <h2>複習常錯的假名</h2>
-                <p>有 ${weak.length} 個假名比較常答錯，先把它們練熟吧。</p>
-              </div>
-              <button type="button" class="btn primary" data-act="review">開始複習</button>
-            </section>`
-          : ''
-      }
       <section class="card setup">
         <div class="field">
           <p class="field-label">內容</p>
@@ -256,11 +288,13 @@ export function mountQuiz(root) {
           ${seg('script', SCRIPTS, cfg.script)}
         </div>
         <div class="field">
-          <p class="field-label"><span>範圍</span><span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words.length} 個單字` : ''}</span></p>
+          <p class="field-label"><span>範圍</span><span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : ''}</span></p>
           <div class="chips">
             ${GROUPS.map(
               (g) => `<button type="button" class="chip${g.kind === 'seion' ? ' kana-chip' : ''}" data-group="${g.id}"
-                aria-pressed="${cfg.groups.has(g.id)}"${g.kind === 'seion' ? ' lang="ja"' : ''}>${label(g)}</button>`,
+                aria-pressed="${cfg.groups.has(g.id)}"${g.kind === 'seion' ? ' lang="ja"' : ''}>${label(g)}${
+                g.kind === 'seion' ? `<span class="chip-r" lang="en">${g.items[0].romaji}</span>` : ''
+              }</button>`,
             ).join('')}
           </div>
           <div class="quick">
@@ -269,10 +303,11 @@ export function mountQuiz(root) {
             <button type="button" class="link-btn" data-quick="none">清除</button>
           </div>
           ${wordMode ? '<p class="range-note">只會出現用已選的假名就能寫出來的單字。</p>' : ''}
+          ${weak ? `<p class="range-note weak-note">其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
         </div>
         <div class="field">
           <p class="field-label">題數</p>
-          ${seg('length', { 10: '10 題', 20: '20 題', all: `全部 ${total} 題` }, cfg.length)}
+          ${seg('length', lengths, lengthOn)}
         </div>
         <button type="button" class="btn primary big block" data-act="start" ${ready ? '' : 'disabled'}>
           開始測驗 ${icons.arrow}
@@ -285,15 +320,22 @@ export function mountQuiz(root) {
     const picked = q.options[game.picked];
     const last = game.i + 1 >= game.qs.length;
     const word = isWord(q.item);
-    // 單字一律把假名、拼音、意思都列出來
-    const full = (i) => `<b lang="ja">${show(i, q.script)}</b> ${i.romaji}${word ? `（${i.zh}）` : ''}`;
-    const text = ok
-      ? `<div class="fb-text ok">${icons.check}<span>答對了！${word ? ` <small>${full(q.item)}</small>` : ''}</span></div>`
-      : `<div class="fb-text bad">
-          <span>答案是 ${full(q.item)}</span>
-          <small>你選的 ${word ? full(picked) : `<b lang="ja">${show(picked, q.script)}</b> 念 ${picked.romaji}`}</small>
+    const kana = (i) => `<b lang="ja">${show(i, q.script)}</b>`;
+    let text;
+    if (ok) text = `<div class="fb-text ok">${icons.check}<span>答對了！</span></div>`;
+    // 單字的正確答案已經寫在題目下方的解釋裡，這裡只說選到的是什麼
+    else if (word)
+      text = `<div class="fb-text bad">
+          <span>答錯了</span>
+          <small>你選的是 ${kana(picked)} ${picked.romaji}（${picked.zh}）</small>
         </div>`;
-    return `${text}<button type="button" class="btn ${ok ? 'ghost' : 'primary'}" data-act="next">${
+    else
+      text = `<div class="fb-text bad">
+          <span>答案是 ${kana(q.item)} ${q.item.romaji}</span>
+          <small>你選的 ${kana(picked)} 念 ${picked.romaji}</small>
+        </div>`;
+    // 假名答對會自動跳題，按鈕淡一點；其他情況都要自己按，用主要按鈕
+    return `${text}<button type="button" class="btn ${ok && !word ? 'ghost' : 'primary'}" data-act="next">${
       last ? '看結果' : '下一題'
     } ${icons.arrow}</button>`;
   }
@@ -315,6 +357,8 @@ export function mountQuiz(root) {
     const correctIdx = q.options.findIndex((o) => o.kana === q.item.kana);
     const ok = game.answered && game.picked === correctIdx;
     const done = game.i + (game.answered ? 1 : 0);
+    const word = isWord(q.item);
+    const explain = word && game.answered; // 單字答完：題目下方顯示字典解釋
 
     el.innerHTML = `
       <div class="play">
@@ -326,7 +370,7 @@ export function mountQuiz(root) {
           <span class="counter">${game.i + 1} / ${n}</span>
         </div>
 
-        <section class="card prompt">
+        <section class="card prompt${explain ? ' answered' : ''}">
           <p class="prompt-label">${view.label}</p>
           <div class="prompt-main ${view.cls}"${showsKana ? ` lang="ja" style="--n:${[...shown].length}"` : ''}>${view.main}</div>
           ${
@@ -334,10 +378,11 @@ export function mountQuiz(root) {
               ? `<button type="button" class="icon-btn speak" data-act="speak" aria-label="播放發音">${icons.volume}</button>`
               : ''
           }
-          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : '&nbsp;'}</p>
+          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : explain ? '' : '&nbsp;'}</p>
+          ${explain ? entryHTML(q.item, mode) : ''}
         </section>
 
-        <div class="options${isWord(q.item) ? ' words' : ''}">
+        <div class="options${word ? ' words' : ''}">
           ${q.options
             .map((o, idx) => {
               let state = '';
@@ -350,10 +395,11 @@ export function mountQuiz(root) {
             .join('')}
         </div>
 
-        <div class="feedback" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
+        <div class="feedback${explain ? ' sticky' : ''}" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
       </div>`;
 
-    if (game.answered && !ok) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
+    // 不會自動跳題時，把焦點放到「下一題」，鍵盤直接按 Enter 就好
+    if (game.answered && (!ok || word)) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
   }
 
   function drawResult() {
@@ -375,7 +421,7 @@ export function mountQuiz(root) {
     </ul>`;
     el.innerHTML = `
       <section class="card result">
-        <p class="result-label">${game.kind === 'review' ? '複習完成' : '測驗完成'}</p>
+        <p class="result-label">測驗完成</p>
         <div class="score">${game.score}<small> / ${n}</small></div>
         <p class="msg">${resultMessage(pct, word)}</p>
         <div class="stats-row">
@@ -435,13 +481,13 @@ export function mountQuiz(root) {
       const q = game?.qs[game.i];
       switch (t.dataset.act) {
         case 'start': return startFromCfg();
-        case 'review': return startReview();
         case 'next': return next();
         case 'speak': return q && say(show(q.item, q.script), { force: true });
-        case 'again': return game.kind === 'review' ? startReview() : startFromCfg();
+        case 'speak-ex': return q?.item.dict && say(q.item.dict.ex, { force: true });
+        case 'again': return startFromCfg();
         case 'retry-miss': {
           const qs = uniqBy(game.mistakes, qKey).map(({ item, script }) => ({ item, script }));
-          return start(qs, game.pool, game.kind, game.mode);
+          return start(qs, game.pool, game.mode);
         }
         case 'quit':
         case 'setup':
@@ -473,9 +519,9 @@ export function mountQuiz(root) {
   };
   document.addEventListener('keydown', onKey);
 
-  // 其他裝置的紀錄同步進來時，設定畫面的「複習常錯的假名」可能要更新
+  // 其他裝置的紀錄同步進來時，設定畫面的「常答錯」數量可能要更新
   const offStats = onStatsChange(() => {
-    if (screen === 'setup' && weakQuestions().length !== weakShown) draw();
+    if (screen === 'setup' && cfgQuestions().qs.filter(isWeak).length !== weakShown) draw();
   });
 
   draw();
