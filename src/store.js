@@ -106,6 +106,9 @@ export function record(key, ok, ms) {
 
 export const getStat = (key) => total[key] || null;
 
+// 有沒有任何練習紀錄（含其他裝置同步來的）
+export const hasStats = () => Object.keys(total).length > 0;
+
 // 最近答對時平均花幾毫秒，沒有紀錄回傳 null
 export function avgTime(key) {
   const s = total[key];

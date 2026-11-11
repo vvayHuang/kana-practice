@@ -1,5 +1,5 @@
 import { SECTIONS, BY_KANA, NOTES, toKatakana, keyOf } from './kana.js';
-import { getPref, setPref, mastery, getStat, avgTime, isSlow, onStatsChange } from './store.js';
+import { getPref, setPref, mastery, getStat, hasStats, avgTime, isSlow, onStatsChange } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -13,6 +13,13 @@ export function renderChart(root) {
 
   const conv = (k) => (script === 'kata' ? toKatakana(k) : k);
 
+  // 熟練度除了右上角的記號，也寫進按鈕的說明文字，螢幕閱讀器才念得到
+  const LEVEL = { good: '已熟練', learning: '練習中', weak: '常答錯' };
+  const cellLabel = (c) => {
+    const level = LEVEL[mastery(keyOf(c, script))];
+    return `${conv(c.kana)}，${c.romaji}${level ? `，${level}` : ''}`;
+  };
+
   function cellHTML(c) {
     if (!c) return '<span class="cell empty" aria-hidden="true"></span>';
     const cls = [
@@ -21,7 +28,7 @@ export function renderChart(root) {
       c.kana.length > 1 ? 'is-combo' : '',
       selected && selected.kana === c.kana ? 'is-selected' : '',
     ].join(' ');
-    return `<button type="button" class="${cls}" data-kana="${c.kana}" aria-label="${conv(c.kana)}，${c.romaji}">
+    return `<button type="button" class="${cls}" data-kana="${c.kana}" aria-label="${cellLabel(c)}">
       <span class="k" lang="ja">${conv(c.kana)}</span><span class="r">${c.romaji}</span>
     </button>`;
   }
@@ -66,6 +73,17 @@ export function renderChart(root) {
     const showRomaji = getPref('showRomaji', true);
     el.classList.toggle('hide-romaji', !showRomaji);
     el.innerHTML = `
+      ${
+        hasStats()
+          ? ''
+          : `<section class="card start-card">
+              <div>
+                <h2>第一次來？從這裡開始</h2>
+                <p>先點下面的假名聽發音，認得幾個之後就去做測驗。測驗會記住你不熟的假名，讓它們多出現幾次。</p>
+              </div>
+              <a class="btn primary" href="#quiz">去做測驗</a>
+            </section>`
+      }
       <div class="toolbar">
         <div class="seg" role="group" aria-label="切換文字">
           <button type="button" data-script="hira" aria-pressed="${script === 'hira'}">平假名</button>
@@ -132,7 +150,9 @@ export function renderChart(root) {
     el.querySelectorAll('.cell[data-kana]').forEach((b) => {
       b.classList.remove('m-new', 'm-learning', 'm-weak', 'm-good');
       b.classList.add(`m-${mastery(keyOf(BY_KANA[b.dataset.kana], script))}`);
+      b.setAttribute('aria-label', cellLabel(BY_KANA[b.dataset.kana]));
     });
+    if (hasStats()) el.querySelector('.start-card')?.remove();
     const stat = el.querySelector('.d-stat');
     if (selected && stat) stat.textContent = statText(selected);
   });

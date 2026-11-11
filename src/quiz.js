@@ -264,6 +264,11 @@ export function mountQuiz(root) {
     const words = wordMode ? qs.length : 0;
     const total = qs.length;
     const weak = qs.filter(isWeak).length;
+    // 題數比範圍內的題目還多的選項不列出來（選了也出不滿）；原本選的題數出不滿時，顯示成「全部」
+    const lengths = {};
+    for (const n of [10, 20]) if (n < total) lengths[n] = `${n} 題`;
+    lengths.all = `全部 ${total} 題`;
+    const lengthOn = cfg.length !== 'all' && cfg.length < total ? cfg.length : 'all';
     weakShown = weak;
     const emptyHint = wordMode ? '這個範圍能組成的單字太少，多選幾行吧' : '先選至少一個範圍喔';
     const label = (g) => (cfg.script === 'kata' ? toKatakana(g.label) : g.label);
@@ -302,7 +307,7 @@ export function mountQuiz(root) {
         </div>
         <div class="field">
           <p class="field-label">題數</p>
-          ${seg('length', { 10: '10 題', 20: '20 題', all: `全部 ${total} 題` }, cfg.length)}
+          ${seg('length', lengths, lengthOn)}
         </div>
         <button type="button" class="btn primary big block" data-act="start" ${ready ? '' : 'disabled'}>
           開始測驗 ${icons.arrow}

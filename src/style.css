@@ -521,21 +521,29 @@ button {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 7px;
-  height: 7px;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
-.cell.m-good::after {
+/* 熟練度記號：顏色之外形狀也不同，分不清顏色的人也看得出來
+   已熟練＝實心圓、練習中＝空心圓、常答錯＝菱形 */
+.cell.m-good::after,
+.dot.good {
   background: var(--ok);
 }
 
-.cell.m-learning::after {
-  background: var(--mid);
+.cell.m-learning::after,
+.dot.learning {
+  border: 2px solid var(--mid);
 }
 
-.cell.m-weak::after {
+.cell.m-weak::after,
+.dot.weak {
   background: var(--bad);
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
 .legend {
@@ -560,21 +568,43 @@ button {
 
 .dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
-.dot.good {
-  background: var(--ok);
+/* 第一次來的人看到的引導 */
+.start-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--accent-soft);
+  border-color: transparent;
 }
 
-.dot.learning {
-  background: var(--mid);
+.start-card h2 {
+  margin: 0;
+  font-size: 16px;
 }
 
-.dot.weak {
-  background: var(--bad);
+.start-card p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.start-card .btn {
+  flex: none;
+  text-decoration: none;
+}
+
+@media (max-width: 420px) {
+  .start-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* 點假名後出現的對照卡 */
@@ -726,6 +756,23 @@ button {
   display: flex;
   gap: 4px;
   margin-top: 10px;
+}
+
+/* 觸控裝置上把小按鈕放大到好按的高度 */
+@media (pointer: coarse) {
+  .tabs a,
+  .seg button,
+  .chip,
+  .link-btn {
+    min-height: 44px;
+  }
+
+  .tabs a,
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .link-btn {
