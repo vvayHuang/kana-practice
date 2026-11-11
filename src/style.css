@@ -702,6 +702,20 @@ button {
   font-size: 16px;
 }
 
+/* 行名旁邊的拼音（あ行 a、か行 ka），不認得假名的人也看得懂是哪一行 */
+.chip-r {
+  margin-left: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.chip[aria-pressed='true'] .chip-r {
+  color: inherit;
+  opacity: 0.85;
+}
+
 .chip[aria-pressed='true'] {
   background: var(--accent);
   border-color: var(--accent);

@@ -260,7 +260,9 @@ export function mountQuiz(root) {
           <div class="chips">
             ${GROUPS.map(
               (g) => `<button type="button" class="chip${g.kind === 'seion' ? ' kana-chip' : ''}" data-group="${g.id}"
-                aria-pressed="${cfg.groups.has(g.id)}"${g.kind === 'seion' ? ' lang="ja"' : ''}>${label(g)}</button>`,
+                aria-pressed="${cfg.groups.has(g.id)}"${g.kind === 'seion' ? ' lang="ja"' : ''}>${label(g)}${
+                g.kind === 'seion' ? `<span class="chip-r" lang="en">${g.items[0].romaji}</span>` : ''
+              }</button>`,
             ).join('')}
           </div>
           <div class="quick">
