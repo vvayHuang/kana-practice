@@ -2,6 +2,7 @@
 // 都是只用表格上的假名就能寫出來的單字（沒有 ティ、ファ 這類特殊拼法）。
 
 import { BY_KANA, toHiragana } from './kana.js';
+import { DICT } from './dict.js';
 
 const HIRA = `
 あい 愛|あお 藍色|あか 紅色|あき 秋天|あさ 早上|あし 腳|いえ 家|いけ 池塘|いす 椅子|うえ 上面
@@ -78,7 +79,22 @@ const parse = (text, script) =>
       const [kana, zh] = entry.trim().split(' ');
       const units = split(kana);
       // kinds：用到的假名（不含 っ、ー），用來判斷這個單字在不在練習範圍裡
-      return { kana, zh, script, romaji: toRomaji(units), kinds: units.filter((u) => BY_KANA[u]), size: units.length };
+      // dict：字典解釋（見 dict.js），答題後顯示
+      return {
+        kana,
+        zh,
+        script,
+        romaji: toRomaji(units),
+        kinds: units.filter((u) => BY_KANA[u]),
+        size: units.length,
+        dict: DICT[kana] || null,
+      };
     });
 
 export const WORDS = [...parse(HIRA, 'hira'), ...parse(KATA, 'kata')];
+
+// 開發時提醒：新加的單字記得也要在 dict.js 補上解釋
+if (import.meta.env?.DEV) {
+  const missing = WORDS.filter((w) => !w.dict).map((w) => w.kana);
+  if (missing.length) console.warn(`dict.js 缺少這些單字的解釋：${missing.join('、')}`);
+}

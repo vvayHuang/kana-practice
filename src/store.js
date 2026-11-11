@@ -135,15 +135,6 @@ export function weight(key) {
   return WEIGHT[mastery(key)];
 }
 
-// 答錯過、還沒熟練的假名，錯越多排越前面（不含單字）
-export function weakKeys(limit = 20) {
-  return Object.entries(total)
-    .filter(([key, s]) => !isWordKey(key) && s.w > 0 && mastery(key) !== 'good')
-    .sort(([, a], [, b]) => b.w - b.c - (a.w - a.c) || b.w - a.w)
-    .slice(0, limit)
-    .map(([key]) => key);
-}
-
 // 其他裝置的紀錄更新時通知畫面重畫，回傳取消訂閱的函式
 export function onStatsChange(fn) {
   remoteListeners.add(fn);
