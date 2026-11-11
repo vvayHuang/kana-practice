@@ -386,8 +386,9 @@ button {
   background: transparent;
   padding: 6px 10px;
   min-height: 44px;
-  font-weight: 600;
-  font-size: 14px;
+  font-family: var(--font-brush);
+  font-weight: 700;
+  font-size: 15px;
   color: var(--ink);
   cursor: pointer;
   transition: background-color 0.15s;
@@ -629,7 +630,6 @@ button {
 
 .grid.cols-3 {
   grid-template-columns: 28px repeat(3, minmax(0, 1fr));
-  max-width: 440px;
 }
 
 .col-h,
@@ -747,10 +747,11 @@ button {
 }
 
 .cell::after {
+  /* 放在左下角：右上角是濁點（゛）和半濁點（゜）的位置，記號放那裡會被看成假名的一部分 */
   content: '';
   position: absolute;
-  top: 4px;
-  right: 4px;
+  left: 4px;
+  bottom: 4px;
 }
 
 /* 點假名後浮上來的對照紙條 */
@@ -1523,6 +1524,14 @@ button {
   box-shadow: 0 0 0 1px var(--rule);
 }
 
+/* 假名的格子和五十音表一樣有十字虛線 */
+.miss:not(.words) li {
+  background:
+    repeating-linear-gradient(90deg, var(--guide) 0 3px, transparent 3px 7px) center / 100% 1px no-repeat,
+    repeating-linear-gradient(0deg, var(--guide) 0 3px, transparent 3px 7px) center / 1px 100% no-repeat,
+    var(--paper);
+}
+
 .miss .k {
   font-family: var(--font-kana);
   font-weight: 600;
@@ -1539,6 +1548,65 @@ button {
   display: grid;
   gap: 8px;
   margin-top: 28px;
+}
+
+/* ---------- 寬螢幕：桌面夠大，紙可以並排 ---------- */
+
+@media (min-width: 1000px) {
+  .top-inner,
+  .wrap {
+    max-width: 1064px;
+  }
+
+  /* 五十音表：清音在左，濁音和拗音在右 */
+  .chart {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+
+  .chart > .sheet {
+    margin-bottom: 0;
+  }
+
+  .chart > .start-card {
+    grid-column: 1 / -1;
+  }
+
+  .chart > .sheet.main {
+    grid-row: span 2;
+  }
+
+  /* 測驗設定：範圍在左，其他設定和開始按鈕在右 */
+  .quiz.is-setup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .quiz.is-setup > .sheet {
+    margin-bottom: 0;
+  }
+
+  .quiz.is-setup > .setup {
+    grid-row: span 2;
+  }
+
+  .quiz.is-setup > .start-bar {
+    position: static;
+    box-shadow: none;
+  }
+
+  /* 作答和結果只有一張紙，留在中間 */
+  .play,
+  .result {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

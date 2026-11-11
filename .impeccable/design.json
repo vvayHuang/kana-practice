@@ -219,7 +219,11 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Segments, hints, counts."
+        "purpose": "Hints and counts."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Segmented controls."
       }
     },
     "shadows": [
@@ -253,6 +257,10 @@
       {
         "name": "wide-cells",
         "value": "600px"
+      },
+      {
+        "name": "desk",
+        "value": "1000px"
       }
     ]
   },
@@ -279,7 +287,7 @@
       "refersTo": "segment-selected",
       "description": "Pick one of two or three; the chosen cell is ink-filled.",
       "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\">平假名</button><button aria-pressed=\"false\">片假名</button></div>",
-      "css": ".ds-seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--ink);border-radius:2px}.ds-seg button{border:0;background:transparent;padding:6px 10px;min-height:44px;font-weight:600;font-size:14px;color:var(--ink);cursor:pointer}.ds-seg button+button{border-left:1px solid var(--ink)}.ds-seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}.ds-seg button[aria-pressed=false]:hover{background:var(--paper-2)}"
+      "css": ".ds-seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--ink);border-radius:2px}.ds-seg button{border:0;background:transparent;padding:6px 10px;min-height:44px;font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:15px;color:var(--ink);cursor:pointer}.ds-seg button+button{border-left:1px solid var(--ink)}.ds-seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}.ds-seg button[aria-pressed=false]:hover{background:var(--paper-2)}"
     },
     {
       "name": "Tabs on felt",
@@ -295,7 +303,7 @@
       "refersTo": "sheet",
       "description": "A kana in a guided cell with romaji and a mastery mark.",
       "html": "<button class=\"ds-cell\"><span class=\"ds-cell-k\" lang=\"ja\">あ</span><span class=\"ds-cell-r\">a</span></button>",
-      "css": ".ds-cell{position:relative;width:72px;height:72px;display:grid;place-items:center;padding:0 0 14px;border:1.5px solid var(--ink);border-radius:0;color:var(--ink);cursor:pointer;background:repeating-linear-gradient(90deg,var(--guide) 0 3px,transparent 3px 7px) center/100% 1px no-repeat,repeating-linear-gradient(0deg,var(--guide) 0 3px,transparent 3px 7px) center/1px 100% no-repeat,var(--paper)}.ds-cell:hover{background-color:var(--paper-2)}.ds-cell-k{font-family:'Klee One',serif;font-weight:600;font-size:30px;line-height:1}.ds-cell-r{position:absolute;left:0;right:0;bottom:3px;font-size:12px;line-height:1;color:var(--ink-2)}.ds-cell::after{content:'';position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--ink)}"
+      "css": ".ds-cell{position:relative;width:72px;height:72px;display:grid;place-items:center;padding:0 0 14px;border:1.5px solid var(--ink);border-radius:0;color:var(--ink);cursor:pointer;background:repeating-linear-gradient(90deg,var(--guide) 0 3px,transparent 3px 7px) center/100% 1px no-repeat,repeating-linear-gradient(0deg,var(--guide) 0 3px,transparent 3px 7px) center/1px 100% no-repeat,var(--paper)}.ds-cell:hover{background-color:var(--paper-2)}.ds-cell-k{font-family:'Klee One',serif;font-weight:600;font-size:30px;line-height:1}.ds-cell-r{position:absolute;left:0;right:0;bottom:3px;font-size:12px;line-height:1;color:var(--ink-2)}.ds-cell::after{content:'';position:absolute;left:4px;bottom:4px;width:9px;height:9px;border-radius:50%;background:var(--ink)}"
     },
     {
       "name": "Answer option, wrong",

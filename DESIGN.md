@@ -36,6 +36,11 @@ typography:
     fontSize: "16px"
     fontWeight: 400
     lineHeight: 1.5
+  control:
+    fontFamily: "'LXGW WenKai TC', 'Klee One', 'BiauKai', 'DFKai-SB', 'Kaiti TC', serif"
+    fontSize: "15px"
+    fontWeight: 700
+    lineHeight: 1.3
   label:
     fontFamily: "system-ui, -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif"
     fontSize: "14px"
@@ -74,12 +79,12 @@ components:
   segment-selected:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.paper}"
-    typography: "{typography.label}"
+    typography: "{typography.control}"
     height: "44px"
   segment:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
+    typography: "{typography.control}"
     height: "44px"
   tab-current:
     backgroundColor: "{colors.paper}"
@@ -158,14 +163,14 @@ At night the same roles hold with felt #0f131d, paper #232836, ink #eef0f4 and v
 - **Headline** (WenKai 700, 20px, 1.3): sheet titles.
 - **Title** (WenKai 700, 17px): buttons, feedback line, result sub-headings.
 - **Body** (system 400, 16px, 1.5): dictionary notes, capped at 34em.
-- **Label** (system 600, 14px): segments, hints, counts. Nothing smaller than 12px, and 12px only for romaji inside chart cells and column heads.
+- **Control** (WenKai 700, 15px): segments. **Label** (system 600, 14px): hints, counts. Nothing smaller than 12px, and 12px only for romaji inside chart cells and column heads.
 
 ### Named Rules
 **The Model Hand Rule.** Kana is always set in Klee One at weight 600. Never substitute a Mincho or Gothic face for kana a learner is meant to copy.
 
 ## Layout
 
-One column, at most 640px wide, centred on the felt with 12px of felt showing at each side. Sheets stack with a 12px gap. Inside a sheet the padding is 18px by 16px and sections are separated by 28px.
+Below 1000px: one column, at most 640px wide, centred on the felt with 12px of felt showing at each side; sheets stack with a 12px gap. From 1000px the desk is 1064px wide and sheets lie side by side: on the chart 清音 is on the left with 濁音 and 拗音 on the right; on the quiz setup the range picker is on the left with the other settings and the start bar on the right. Play and result stay a single 640px sheet in the middle. Inside a sheet the padding is 18px by 16px and sections are separated by 28px.
 
 Tables are CSS grids with a 1px gap over the rule colour, so the lines are the gaps, inside a 1.5px ink frame. The kana chart has a 28px first column holding the row name written vertically.
 
@@ -199,7 +204,7 @@ Corners are 2px everywhere. The only round shapes are the two mastery marks (a s
 - **Disabled:** dashed Ink Tertiary border, no fill.
 
 ### Segments
-- A row of equal cells inside a 1px ink frame, 44px tall. The selected cell is ink-filled.
+- A row of equal cells inside a 1px ink frame, 44px tall, lettered in WenKai 700 at 15px. The selected cell is ink-filled.
 
 ### Row picker
 - Quiz range. A two-column ruled table of toggles; each shows the kana in the row at 22px with their romaji underneath. Selected rows are ink-filled.
@@ -214,7 +219,7 @@ Corners are 2px everywhere. The only round shapes are the two mastery marks (a s
 - Two tabs in a 1px On Felt Muted frame on the felt. The current tab is a paper block with ink text; the other is On Felt text and takes Felt Raised on hover.
 
 ### Practice cell
-- A square with dashed horizontal and vertical centre guides. In the chart it holds a kana, its romaji at the bottom edge, and a mastery mark in the top right corner: solid dot for mastered, ring for practising, vermilion cross for often missed.
+- A square with dashed horizontal and vertical centre guides. In the chart it holds a kana, its romaji at the bottom edge, and a mastery mark in the bottom left corner, never the top right where ゛ and ゜ are written: solid dot for mastered, ring for practising, vermilion cross for often missed.
 
 ### Answer option
 - Paper tile with a 1.5px ink border, 76px tall. After answering: the right option stays paper and an ink ring is drawn at its right edge; a wrong pick turns Vermilion Wash with a vermilion cross drawn in two strokes; the rest drop to dashed outlines on the felt.

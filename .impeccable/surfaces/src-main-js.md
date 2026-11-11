@@ -19,13 +19,13 @@ Unresolved: whether the owner prefers a white-paper ground over the felt ground 
 
 THESIS: The screen is a calligraphy desk: sheets of white hanshi lying on a navy felt mat, written in ink and corrected in vermilion. It refuses the stack of rounded, shadowed cards on a cream ground.
 
-OWN-WORLD: Navy felt ground; square-cornered white paper sheets with no shadow; hairline ruled grids with dashed centre guides in every practice cell; ink-filled blocks for selected and primary; vermilion appears only as a correction mark. Kana in Klee One, interface lettering in LXGW WenKai TC, captions in the system sans.
+OWN-WORLD: Navy felt ground; square-cornered white paper sheets with no shadow (the only shadow is under slips that float over other content: the kana detail slip, sticky bars and the toast); hairline ruled grids with dashed centre guides in every practice cell; ink-filled blocks for selected and primary; vermilion appears only as a correction mark. Kana in Klee One, interface lettering in LXGW WenKai TC, captions in the system sans.
 
 STORY: The learner sees the syllabary as one ruled table with row and column names, picks rows by seeing the kana they contain, answers with the thumb, and reads the teacher's red pen where they went wrong.
 
 FIRST VIEWPORT: Felt strip with a paper name tag, two index tabs and the sound button. Below it one paper sheet: script switch and legend, then the 清音 table, five columns under a i u e o with a row-name column at the left, each kana in a guided cell at about 30px.
 
-SIGNATURE: A wrong answer is struck with a vermilion cross drawn stroke by stroke; the right answer fills with ink.
+SIGNATURE: A wrong answer is marked with a vermilion cross drawn stroke by stroke; the right answer stays on paper and is ringed in ink. (Changed during the build: an ink-filled tile sank into the navy felt and read as the least important option, so the right answer keeps the brightest surface instead.)
 
 FORM: 書道 model sheet on a felt underlay, candidate 7 of 7 on the grounded list. Seed key a6556322 (roll ran degraded: no challengers).
 

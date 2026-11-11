@@ -89,7 +89,7 @@ export function renderChart(root) {
               <a class="btn primary" href="#quiz">去做測驗</a>
             </section>`
       }
-      <section class="sheet">
+      <section class="sheet main">
       <div class="toolbar">
         <div class="seg" role="group" aria-label="切換文字">
           <button type="button" data-script="hira" aria-pressed="${script === 'hira'}">平假名</button>
@@ -97,7 +97,7 @@ export function renderChart(root) {
         </div>
         <label class="check"><input type="checkbox" data-act="romaji" ${showRomaji ? 'checked' : ''} /> 顯示拼音</label>
       </div>
-      <p class="hint">點一下假名就能聽發音。做完測驗後，格子右上角會標出熟練度：</p>
+      <p class="hint">點一下假名就能聽發音。做完測驗後，格子左下角會標出熟練度：</p>
       <div class="legend">
         <span><i class="dot good"></i>已熟練</span>
         <span><i class="dot learning"></i>練習中（含答對但較慢）</span>

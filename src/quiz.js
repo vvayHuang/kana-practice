@@ -473,6 +473,7 @@ export function mountQuiz(root) {
     if (screen === 'play') drawPlay();
     else if (screen === 'result') drawResult();
     else drawSetup();
+    el.classList.toggle('is-setup', screen === 'setup'); // 寬螢幕上設定畫面分成左右兩欄
     // 換畫面或換題時回到頂端，題目才不會被頁首擋住
     const idx = screen === 'play' ? game.i : -1;
     if (screen !== lastScreen || idx !== lastIndex) window.scrollTo(0, 0);
