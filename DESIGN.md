@@ -222,7 +222,7 @@ Corners are 2px everywhere. The only round shapes are the two mastery marks (a s
 - A square with dashed horizontal and vertical centre guides. In the chart it holds a kana, its romaji at the bottom edge, and a mastery mark in the bottom left corner, never the top right where ゛ and ゜ are written: solid dot for mastered, ring for practising, vermilion cross for often missed.
 
 ### Answer option
-- Paper tile with a 1.5px ink border, 76px tall. After answering: the right option stays paper and an ink ring is drawn at its right edge; a wrong pick turns Vermilion Wash with a vermilion cross drawn in two strokes; the rest drop to dashed outlines on the felt.
+- Paper tile with a 1.5px ink border, 76px tall. After answering: the right option stays paper, its frame thickens to 4px of ink and an ink ring is drawn at its right edge; a wrong pick turns Vermilion Wash with a vermilion cross drawn in two strokes; the rest drop to dashed outlines on the felt.
 
 ## Do's and Don'ts
 

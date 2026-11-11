@@ -1330,10 +1330,11 @@ button {
   cursor: default;
 }
 
-/* 答對的那一格：留在紙上，墨筆圈起來 */
+/* 答對的那一格：留在紙上，墨框加粗，再用墨筆圈起來 */
 .opt.correct {
   background: var(--paper);
   color: var(--ink);
+  box-shadow: inset 0 0 0 2.5px var(--ink);
 }
 
 /* 答錯的那一格：朱筆畫叉 */
@@ -1496,21 +1497,14 @@ button {
   color: var(--ink-2);
 }
 
-/* 答錯和答得慢的假名：跟五十音表一樣的習字格 */
+/* 答錯和答得慢的假名：一格一格的習字格，有幾個就排幾格，後面不留空格 */
 .miss {
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 1px;
-  background: var(--paper);
-  border: 1.5px solid var(--ink);
-  overflow: hidden;
-}
-
-.miss.words {
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  padding: 0 0 0 1.5px;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 0;
 }
 
 .miss li {
@@ -1518,18 +1512,20 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 66px;
   min-height: 68px;
+  margin: 0 0 -1.5px -1.5px;
   padding: 6px 4px;
-  background: var(--paper);
-  box-shadow: 0 0 0 1px var(--rule);
-}
-
-/* 假名的格子和五十音表一樣有十字虛線 */
-.miss:not(.words) li {
+  border: 1.5px solid var(--ink);
   background:
     repeating-linear-gradient(90deg, var(--guide) 0 3px, transparent 3px 7px) center / 100% 1px no-repeat,
     repeating-linear-gradient(0deg, var(--guide) 0 3px, transparent 3px 7px) center / 1px 100% no-repeat,
     var(--paper);
+}
+
+.miss.words li {
+  width: 138px;
+  background: var(--paper);
 }
 
 .miss .k {
@@ -1595,8 +1591,10 @@ button {
     grid-row: span 2;
   }
 
+  /* 這裡的開始列不是浮在內容上，所以跟其他紙一樣平放：沒有陰影也沒有墨框 */
   .quiz.is-setup > .start-bar {
     position: static;
+    border-color: transparent;
     box-shadow: none;
   }
 
