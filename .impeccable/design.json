@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T10:09:02.139230+00:00",
+  "title": "Design System: かな練習帳",
+  "extensions": {
+    "colorMeta": {
+      "felt": {
+        "role": "neutral",
+        "displayName": "Navy Felt",
+        "canonical": "#1b2338",
+        "tonalRamp": [
+          "#141a29",
+          "#283453",
+          "#3c4d7c",
+          "#5067a5",
+          "#7589bd",
+          "#9facd1",
+          "#c8d0e4",
+          "#eef0f7"
+        ]
+      },
+      "felt-raised": {
+        "role": "neutral",
+        "displayName": "Felt Raised",
+        "canonical": "#28324d",
+        "tonalRamp": [
+          "#151a28",
+          "#2a3451",
+          "#3f4e79",
+          "#5469a1",
+          "#798ab9",
+          "#a1adce",
+          "#c9d0e3",
+          "#eef0f6"
+        ]
+      },
+      "on-felt": {
+        "role": "neutral",
+        "displayName": "On Felt",
+        "canonical": "#f3f1ea",
+        "tonalRamp": [
+          "#272316",
+          "#4e462d",
+          "#756a43",
+          "#9c8d59",
+          "#b5a87d",
+          "#cbc2a4",
+          "#e1dccb",
+          "#f6f4ef"
+        ]
+      },
+      "on-felt-muted": {
+        "role": "neutral",
+        "displayName": "On Felt Muted",
+        "canonical": "#b9c0d4",
+        "tonalRamp": [
+          "#171b26",
+          "#2f364c",
+          "#465172",
+          "#5d6c98",
+          "#818db1",
+          "#a7afc9",
+          "#ccd2e0",
+          "#eff1f5"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#fbfaf6",
+        "tonalRamp": [
+          "#2a2613",
+          "#554b26",
+          "#7f7138",
+          "#a9974b",
+          "#c0b172",
+          "#d3c89c",
+          "#e6e0c7",
+          "#f7f5ed"
+        ]
+      },
+      "paper-pressed": {
+        "role": "neutral",
+        "displayName": "Paper Pressed",
+        "canonical": "#efeee8",
+        "tonalRamp": [
+          "#242319",
+          "#484532",
+          "#6c684b",
+          "#908a64",
+          "#aba687",
+          "#c4c1ab",
+          "#dedbcf",
+          "#f5f4f0"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Sumi Ink",
+        "canonical": "#15171c",
+        "tonalRamp": [
+          "#1a1d23",
+          "#343946",
+          "#4f5669",
+          "#69738c",
+          "#8a93a8",
+          "#adb3c2",
+          "#d0d4dc",
+          "#f0f1f4"
+        ]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Ink Secondary",
+        "canonical": "#3f4450",
+        "tonalRamp": [
+          "#1b1d22",
+          "#363a44",
+          "#515767",
+          "#6c7489",
+          "#8d94a5",
+          "#afb4c0",
+          "#d1d4db",
+          "#f1f2f4"
+        ]
+      },
+      "ink-tertiary": {
+        "role": "neutral",
+        "displayName": "Ink Tertiary",
+        "canonical": "#5d6370",
+        "tonalRamp": [
+          "#1c1e21",
+          "#383b43",
+          "#535964",
+          "#6f7686",
+          "#9096a2",
+          "#b1b5be",
+          "#d2d5da",
+          "#f1f2f3"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#c9cace",
+        "tonalRamp": [
+          "#1d1e20",
+          "#3a3b40",
+          "#575960",
+          "#747780",
+          "#94969e",
+          "#b4b6bb",
+          "#d4d5d8",
+          "#f2f2f3"
+        ]
+      },
+      "guide": {
+        "role": "neutral",
+        "displayName": "Guide",
+        "canonical": "#dddcd6",
+        "tonalRamp": [
+          "#21211c",
+          "#434137",
+          "#646253",
+          "#86836f",
+          "#a3a08f",
+          "#bebcb1",
+          "#dad9d2",
+          "#f3f3f1"
+        ]
+      },
+      "vermilion": {
+        "role": "secondary",
+        "displayName": "Teacher's Vermilion",
+        "canonical": "#c2301a",
+        "tonalRamp": [
+          "#360d07",
+          "#6c1b0e",
+          "#a22816",
+          "#d8351d",
+          "#e7604b",
+          "#ee8f81",
+          "#f5bfb7",
+          "#fcebe9"
+        ]
+      },
+      "vermilion-soft": {
+        "role": "secondary",
+        "displayName": "Vermilion Wash",
+        "canonical": "#fbe8e3",
+        "tonalRamp": [
+          "#361108",
+          "#6b220f",
+          "#a13417",
+          "#d6451f",
+          "#e66c4c",
+          "#ed9882",
+          "#f5c4b8",
+          "#fcede9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "kana-display": {
+        "displayName": "Kana display",
+        "purpose": "The question character and chart cells."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Sheet titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Buttons, feedback line, result sub-headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Dictionary notes."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Segments, hints, counts."
+      }
+    },
+    "shadows": [
+      {
+        "name": "lift",
+        "value": "0 8px 24px rgb(6 10 22 / 0.38)",
+        "purpose": "Only for things that float over other content: detail slip, sticky bars, toast."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Slips sliding in, the progress bar, the correction strokes."
+      },
+      {
+        "name": "stroke",
+        "value": "0.22s per stroke, second stroke delayed 0.14s",
+        "purpose": "The vermilion cross and the ink ring are drawn, not faded in."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "360px"
+      },
+      {
+        "name": "phone",
+        "value": "560px"
+      },
+      {
+        "name": "wide-cells",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action on a sheet or sticky bar.",
+      "html": "<button class=\"ds-btn-primary\">開始測驗</button>",
+      "css": ".ds-btn-primary{min-height:48px;padding:0 20px;border:1px solid var(--ink);border-radius:2px;background:var(--ink);color:var(--paper);font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:17px;cursor:pointer;transition:transform .1s}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action on paper.",
+      "html": "<button class=\"ds-btn-outline\">再來一輪</button>",
+      "css": ".ds-btn-outline{min-height:48px;padding:0 20px;border:1px solid var(--ink);border-radius:2px;background:transparent;color:var(--ink);font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:17px;cursor:pointer;transition:background-color .15s}.ds-btn-outline:hover{background:var(--paper-2)}.ds-btn-outline:focus-visible{outline:2px solid var(--ink);outline-offset:2px}"
+    },
+    {
+      "name": "Segments",
+      "kind": "input",
+      "refersTo": "segment-selected",
+      "description": "Pick one of two or three; the chosen cell is ink-filled.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\">平假名</button><button aria-pressed=\"false\">片假名</button></div>",
+      "css": ".ds-seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--ink);border-radius:2px}.ds-seg button{border:0;background:transparent;padding:6px 10px;min-height:44px;font-weight:600;font-size:14px;color:var(--ink);cursor:pointer}.ds-seg button+button{border-left:1px solid var(--ink)}.ds-seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}.ds-seg button[aria-pressed=false]:hover{background:var(--paper-2)}"
+    },
+    {
+      "name": "Tabs on felt",
+      "kind": "nav",
+      "refersTo": "tab-current",
+      "description": "Top-level navigation; the current tab is a paper block.",
+      "html": "<nav class=\"ds-tabs\"><a aria-current=\"page\" href=\"#\">五十音表</a><a href=\"#\">測驗</a></nav>",
+      "css": ".ds-tabs{display:grid;grid-template-columns:1fr 1fr;width:240px;border:1px solid var(--on-felt-2);border-radius:2px;background:var(--felt)}.ds-tabs a{display:flex;align-items:center;justify-content:center;min-height:44px;color:var(--on-felt);text-decoration:none;font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:16px}.ds-tabs a[aria-current=page]{background:var(--paper);color:var(--ink)}.ds-tabs a:not([aria-current]):hover{background:var(--felt-2)}"
+    },
+    {
+      "name": "Practice cell",
+      "kind": "custom",
+      "refersTo": "sheet",
+      "description": "A kana in a guided cell with romaji and a mastery mark.",
+      "html": "<button class=\"ds-cell\"><span class=\"ds-cell-k\" lang=\"ja\">あ</span><span class=\"ds-cell-r\">a</span></button>",
+      "css": ".ds-cell{position:relative;width:72px;height:72px;display:grid;place-items:center;padding:0 0 14px;border:1.5px solid var(--ink);border-radius:0;color:var(--ink);cursor:pointer;background:repeating-linear-gradient(90deg,var(--guide) 0 3px,transparent 3px 7px) center/100% 1px no-repeat,repeating-linear-gradient(0deg,var(--guide) 0 3px,transparent 3px 7px) center/1px 100% no-repeat,var(--paper)}.ds-cell:hover{background-color:var(--paper-2)}.ds-cell-k{font-family:'Klee One',serif;font-weight:600;font-size:30px;line-height:1}.ds-cell-r{position:absolute;left:0;right:0;bottom:3px;font-size:12px;line-height:1;color:var(--ink-2)}.ds-cell::after{content:'';position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--ink)}"
+    },
+    {
+      "name": "Answer option, wrong",
+      "kind": "custom",
+      "refersTo": "option-wrong",
+      "description": "The option the learner picked wrongly, struck with a vermilion cross.",
+      "html": "<button class=\"ds-opt-wrong\" disabled>ko<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 5 19 19\"/><path d=\"M19 5 5 19\"/></svg></button>",
+      "css": ".ds-opt-wrong{position:relative;width:180px;min-height:76px;border:1.5px solid var(--shu);border-radius:2px;background:var(--shu-soft);color:var(--shu);font-family:'LXGW WenKai TC','Klee One',serif;font-size:26px;font-weight:700}.ds-opt-wrong svg{position:absolute;top:50%;right:12px;width:26px;height:26px;margin-top:-13px}.ds-opt-wrong path{fill:none;stroke:var(--shu);stroke-width:2.6;stroke-linecap:round}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calligraphy Desk",
+    "overview": "The screen is a desk set for writing practice. A navy felt mat is the ground. White sheets of paper lie on it with square corners and no shadow. Everything the learner reads is written in ink, and the only other colour is the teacher's vermilion pen, which appears where an answer was wrong and nowhere else.\n\nThe kana is the subject. It sits in a ruled practice cell with dashed centre guides, the same cell whether it is one of 46 in the chart, a missed kana in the results, or the single large character of a quiz question. Controls stay plain: a selected thing is filled with ink, an unselected thing is an outline.",
+    "keyCharacteristics": [
+      "Felt ground, paper sheets, ink marks, vermilion corrections",
+      "Square corners (2px) and hairline rules instead of cards and shadows",
+      "Kana always in a guided cell",
+      "Selection shown by ink fill, never by colour",
+      "One-thumb reach: the primary action sits at the bottom of the screen"
+    ],
+    "rules": [
+      {
+        "name": "The Red Pen Rule",
+        "body": "Vermilion means \"this was wrong\". It is never used for brand, emphasis, links, primary buttons or selection.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Fill Rule",
+        "body": "Selected, current and primary are shown by filling with ink and reversing the text to paper. Colour does not carry selection.",
+        "section": "colors"
+      },
+      {
+        "name": "The Model Hand Rule",
+        "body": "Kana is always set in Klee One at weight 600. Never substitute a Mincho or Gothic face for kana a learner is meant to copy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lying Flat Rule",
+        "body": "If it scrolls with the page it has no shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put content on a paper sheet and controls that belong to the whole screen on the felt.",
+      "Do show kana in a guided practice cell.",
+      "Do show selection with ink fill.",
+      "Do keep the main action within thumb reach at the bottom of the screen.",
+      "Do keep text on paper at Ink Tertiary (#5d6370) or darker."
+    ],
+    "donts": [
+      "Don't use vermilion for anything except marking something wrong.",
+      "Don't add rounded cards, soft shadows on resting surfaces, or a cream ground.",
+      "Don't add green for success; a right answer is marked in ink.",
+      "Don't set kana in any face other than Klee One."
+    ]
+  }
+}

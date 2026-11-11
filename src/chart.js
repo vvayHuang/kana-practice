@@ -33,14 +33,19 @@ export function renderChart(root) {
     </button>`;
   }
 
+  // 一張格線表：最上面一列是母音，最左邊一欄直寫行名
   const sectionHTML = (sec) => `
-    <section class="sec">
-      <div class="sec-head"><h2>${sec.title}</h2><span>${sec.note}</span></div>
-      <div class="grid cols-${sec.cols.length}">
-        ${sec.cols.map((c) => `<span class="col-h" aria-hidden="true">${c}</span>`).join('')}
-        ${sec.rows.map((r) => r.cells.map(cellHTML).join('')).join('')}
-      </div>
-    </section>`;
+    <div class="sec-head"><h2 class="sheet-title">${sec.title}</h2><span>${sec.note}</span></div>
+    <div class="grid cols-${sec.cols.length}">
+      <span class="corner" aria-hidden="true"></span>
+      ${sec.cols.map((c) => `<span class="col-h" aria-hidden="true">${c}</span>`).join('')}
+      ${sec.rows
+        .map(
+          (r) =>
+            `<span class="row-h" lang="ja" aria-hidden="true">${conv(r.label)}</span>${r.cells.map(cellHTML).join('')}`,
+        )
+        .join('')}
+    </div>`;
 
   function statText(c) {
     const key = keyOf(c, script);
@@ -64,7 +69,7 @@ export function renderChart(root) {
         ${note ? `<div class="d-note">${note}</div>` : ''}
         <div class="d-stat">${stat}</div>
       </div>
-      <button type="button" class="icon-btn accent" data-act="speak" aria-label="播放發音">${icons.volume}</button>
+      <button type="button" class="icon-btn ink" data-act="speak" aria-label="播放發音">${icons.volume}</button>
       <button type="button" class="icon-btn plain" data-act="close" aria-label="關閉">${icons.close}</button>
     </div>`;
   }
@@ -76,14 +81,15 @@ export function renderChart(root) {
       ${
         hasStats()
           ? ''
-          : `<section class="card start-card">
+          : `<section class="sheet start-card">
               <div>
-                <h2>第一次來？從這裡開始</h2>
+                <h2 class="sheet-title">第一次來？從這裡開始</h2>
                 <p>先點下面的假名聽發音，認得幾個之後就去做測驗。測驗會記住你不熟的假名，讓它們多出現幾次。</p>
               </div>
               <a class="btn primary" href="#quiz">去做測驗</a>
             </section>`
       }
+      <section class="sheet">
       <div class="toolbar">
         <div class="seg" role="group" aria-label="切換文字">
           <button type="button" data-script="hira" aria-pressed="${script === 'hira'}">平假名</button>
@@ -91,14 +97,17 @@ export function renderChart(root) {
         </div>
         <label class="check"><input type="checkbox" data-act="romaji" ${showRomaji ? 'checked' : ''} /> 顯示拼音</label>
       </div>
-      <p class="hint">點一下假名就能聽發音，看平假名和片假名的對照。</p>
+      <p class="hint">點一下假名就能聽發音。做完測驗後，格子右上角會標出熟練度：</p>
       <div class="legend">
         <span><i class="dot good"></i>已熟練</span>
         <span><i class="dot learning"></i>練習中（含答對但較慢）</span>
         <span><i class="dot weak"></i>常答錯</span>
-        <span class="muted">做完測驗後會標在表格上</span>
       </div>
-      ${SECTIONS.map(sectionHTML).join('')}
+      ${sectionHTML(SECTIONS[0])}
+      </section>
+      ${SECTIONS.slice(1)
+        .map((sec) => `<section class="sheet">${sectionHTML(sec)}</section>`)
+        .join('')}
       <div class="detail" ${selected ? '' : 'hidden'}>${selected ? detailHTML(selected) : ''}</div>`;
   }
 

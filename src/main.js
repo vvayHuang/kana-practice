@@ -17,17 +17,17 @@ app.innerHTML = `
           <p>五十音・平假名・片假名</p>
         </div>
       </div>
+      <nav class="tabs" aria-label="主要功能">
+        <div class="tabs-inner">
+          <a href="#chart" data-route="chart">五十音表</a>
+          <a href="#quiz" data-route="quiz">測驗</a>
+        </div>
+      </nav>
       <div class="top-actions">
         <button type="button" class="icon-btn sync" id="sync-status" hidden></button>
         <button type="button" class="icon-btn" id="sound-toggle"></button>
       </div>
     </div>
-    <nav class="tabs" aria-label="主要功能">
-      <div class="tabs-inner">
-        <a href="#chart" data-route="chart">五十音表</a>
-        <a href="#quiz" data-route="quiz">測驗</a>
-      </div>
-    </nav>
   </header>
   <main id="view" class="wrap"></main>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

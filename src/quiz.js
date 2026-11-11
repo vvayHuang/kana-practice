@@ -97,6 +97,14 @@ function makeWordOptions(q, pool) {
   return shuffle([q.item, ...picks]);
 }
 
+// 答錯時朱筆在選項旁邊打的叉，兩筆依序畫出來（畫在右側，不蓋住選項的字）
+const STRIKE = `<svg class="strike" viewBox="0 0 24 24" aria-hidden="true">
+  <path d="M5 5 19 19" /><path d="M19 5 5 19" /></svg>`;
+
+// 答對的選項用墨筆圈起來
+const RING = `<svg class="strike" viewBox="0 0 24 24" aria-hidden="true">
+  <circle cx="12" cy="12" r="9" transform="rotate(-90 12 12)" /></svg>`;
+
 const seg = (field, opts, cur) => `
   <div class="seg block" role="group" data-field="${field}">
     ${Object.entries(opts)
@@ -271,10 +279,47 @@ export function mountQuiz(root) {
     const lengthOn = cfg.length !== 'all' && cfg.length < total ? cfg.length : 'all';
     weakShown = weak;
     const emptyHint = wordMode ? '這個範圍能組成的單字太少，多選幾行吧' : '先選至少一個範圍喔';
-    const label = (g) => (cfg.script === 'kata' ? toKatakana(g.label) : g.label);
+
+    const kata = cfg.script === 'kata';
+    const conv = (k) => (kata ? toKatakana(k) : k);
+    // 每一行直接列出裡面的假名和念法；濁音、拗音太多，只列每行的第一個當例子
+    const rowPick = (g) => {
+      const on = cfg.groups.has(g.id);
+      let kana;
+      let name;
+      if (g.kind === 'seion') {
+        kana = g.items.map((i) => conv(i.kana)).join('');
+        name = g.items.map((i) => i.romaji).join(' ');
+      } else {
+        const step = g.kind === 'dakuon' ? 5 : 3;
+        const sample = g.items.filter((_, i) => i % step === 0).slice(0, g.kind === 'yoon' ? 4 : 5);
+        kana = sample.map((i) => conv(i.kana)).join(g.kind === 'yoon' ? ' ' : '');
+        name = `${g.label}・共 ${g.items.length} 個`;
+      }
+      return `<button type="button" class="row-pick${g.kind === 'seion' && g.id !== 'n' ? '' : ' wide'}" data-group="${g.id}"
+        aria-pressed="${on}" aria-label="${g.label}：${name}">
+        <span class="rp-kana" lang="ja" aria-hidden="true">${kana}</span>
+        <span class="rp-name" aria-hidden="true">${name}</span>
+      </button>`;
+    };
+    const count = lengthOn === 'all' ? total : lengthOn;
 
     el.innerHTML = `
-      <section class="card setup">
+      <section class="sheet setup">
+        <div class="range-head">
+          <h2 class="sheet-title">要練哪幾行？</h2>
+          <span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : ''}</span>
+        </div>
+        <div class="rows">${GROUPS.map(rowPick).join('')}</div>
+        <div class="quick">
+          <button type="button" class="link-btn" data-quick="seion">全部清音</button>
+          <button type="button" class="link-btn" data-quick="all">全選</button>
+          <button type="button" class="link-btn" data-quick="none">清除</button>
+        </div>
+        ${wordMode ? '<p class="range-note">只會出現用已選的假名就能寫出來的單字。</p>' : ''}
+        ${weak ? `<p class="range-note weak-note"><i class="dot weak"></i>其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
+      </section>
+      <section class="sheet fields">
         <div class="field">
           <p class="field-label">內容</p>
           ${seg('content', CONTENTS, cfg.content)}
@@ -288,32 +333,16 @@ export function mountQuiz(root) {
           ${seg('script', SCRIPTS, cfg.script)}
         </div>
         <div class="field">
-          <p class="field-label"><span>範圍</span><span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : ''}</span></p>
-          <div class="chips">
-            ${GROUPS.map(
-              (g) => `<button type="button" class="chip${g.kind === 'seion' ? ' kana-chip' : ''}" data-group="${g.id}"
-                aria-pressed="${cfg.groups.has(g.id)}"${g.kind === 'seion' ? ' lang="ja"' : ''}>${label(g)}${
-                g.kind === 'seion' ? `<span class="chip-r" lang="en">${g.items[0].romaji}</span>` : ''
-              }</button>`,
-            ).join('')}
-          </div>
-          <div class="quick">
-            <button type="button" class="link-btn" data-quick="seion">全部清音</button>
-            <button type="button" class="link-btn" data-quick="all">全選</button>
-            <button type="button" class="link-btn" data-quick="none">清除</button>
-          </div>
-          ${wordMode ? '<p class="range-note">只會出現用已選的假名就能寫出來的單字。</p>' : ''}
-          ${weak ? `<p class="range-note weak-note">其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
-        </div>
-        <div class="field">
           <p class="field-label">題數</p>
           ${seg('length', lengths, lengthOn)}
         </div>
-        <button type="button" class="btn primary big block" data-act="start" ${ready ? '' : 'disabled'}>
+      </section>
+      <div class="sheet start-bar">
+        <p class="start-sum">${ready ? `<b>${count} 題</b>${wordMode ? `${words} 個單字` : `${items.length} 個假名`}裡出題` : emptyHint}</p>
+        <button type="button" class="btn primary" data-act="start" ${ready ? '' : 'disabled'}>
           開始測驗 ${icons.arrow}
         </button>
-        ${ready ? '' : `<p class="empty-hint">${emptyHint}</p>`}
-      </section>`;
+      </div>`;
   }
 
   function feedbackHTML(q, ok) {
@@ -354,6 +383,7 @@ export function mountQuiz(root) {
       pick: { label: '選出這個意思的單字', cls: 'meaning', main: q.item.zh, opt: (o) => show(o, q.script), ja: true },
     }[mode];
     const showsKana = view.cls.startsWith('kana'); // 題目本身就是假名，可以先聽發音
+    const chars = [...shown]; // 題目的假名一個字寫一格
     const correctIdx = q.options.findIndex((o) => o.kana === q.item.kana);
     const ok = game.answered && game.picked === correctIdx;
     const done = game.i + (game.answered ? 1 : 0);
@@ -365,14 +395,16 @@ export function mountQuiz(root) {
         <div class="play-top">
           <button type="button" class="icon-btn" data-act="quit" aria-label="結束測驗">${icons.close}</button>
           <div class="progress" role="progressbar" aria-label="進度" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${done}">
-            <div class="bar" style="width:${(done / n) * 100}%"></div>
+            <div class="bar" style="transform:scaleX(${done / n})"></div>
           </div>
           <span class="counter">${game.i + 1} / ${n}</span>
         </div>
 
-        <section class="card prompt${explain ? ' answered' : ''}">
+        <section class="sheet prompt${explain ? ' answered' : ''}">
           <p class="prompt-label">${view.label}</p>
-          <div class="prompt-main ${view.cls}"${showsKana ? ` lang="ja" style="--n:${[...shown].length}"` : ''}>${view.main}</div>
+          <div class="prompt-main ${view.cls}"${showsKana ? ` lang="ja" style="--n:${chars.length}"` : ''}>${
+            showsKana ? chars.map((ch) => `<span class="box">${ch}</span>`).join('') : view.main
+          }</div>
           ${
             showsKana || game.answered
               ? `<button type="button" class="icon-btn speak" data-act="speak" aria-label="播放發音">${icons.volume}</button>`
@@ -390,6 +422,7 @@ export function mountQuiz(root) {
               return `<button type="button" class="opt ${state}" data-opt="${idx}" ${game.answered ? 'disabled' : ''}>
                 <span class="num" aria-hidden="true">${idx + 1}</span>
                 <span class="opt-label"${view.ja ? ' lang="ja"' : ''}>${view.opt(o)}</span>
+                ${state === 'wrong' ? STRIKE : state === 'correct' ? RING : ''}
               </button>`;
             })
             .join('')}
@@ -410,7 +443,7 @@ export function mountQuiz(root) {
     const missed = new Set(misses.map(qKey));
     const slows = uniqBy(game.slow, qKey).filter((q) => !missed.has(qKey(q)));
     const noun = word ? '單字' : '假名';
-    const kanaList = (qs) => `<ul class="miss">
+    const kanaList = (qs) => `<ul class="miss${word ? ' words' : ''}">
       ${qs
         .map(
           (q) => `<li><span class="k" lang="ja">${show(q.item, q.script)}</span><span class="r">${q.item.romaji}</span>${
@@ -420,16 +453,12 @@ export function mountQuiz(root) {
         .join('')}
     </ul>`;
     el.innerHTML = `
-      <section class="card result">
-        <p class="result-label">測驗完成</p>
-        <div class="score">${game.score}<small> / ${n}</small></div>
+      <section class="sheet result">
+        <h2 class="sheet-title">測驗完成</h2>
+        <p class="score" aria-label="答對 ${game.score} 題，共 ${n} 題">${game.score}<small> / ${n}</small></p>
         <p class="msg">${resultMessage(pct, word)}</p>
-        <div class="stats-row">
-          <div><b>${pct}%</b><span>正確率</span></div>
-          <div><b>${game.best}</b><span>最多連續答對</span></div>
-        </div>
-        ${misses.length ? `<h3>答錯的${noun}</h3>${kanaList(misses)}` : ''}
-        ${slows.length ? `<h3>答對但想比較久的${noun}</h3>${kanaList(slows)}<p class="result-note">多練幾次、答得更快就算熟練了。</p>` : ''}
+        ${misses.length ? `<h3><i class="dot weak"></i>答錯的${noun}</h3>${kanaList(misses)}` : ''}
+        ${slows.length ? `<h3><i class="dot learning"></i>答對但想比較久的${noun}</h3>${kanaList(slows)}<p class="result-note">多練幾次、答得更快就算熟練了。</p>` : ''}
         <div class="actions">
           ${misses.length ? '<button type="button" class="btn primary" data-act="retry-miss">再練一次答錯的</button>' : ''}
           <button type="button" class="btn ${misses.length ? '' : 'primary'}" data-act="again">再來一輪</button>
