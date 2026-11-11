@@ -726,31 +726,16 @@ button {
   color: var(--ink-3);
 }
 
+.range-note.weak-note {
+  color: var(--bad);
+  font-weight: 600;
+}
+
 .empty-hint {
   margin: 8px 0 0;
   text-align: center;
   font-size: 13px;
   color: var(--ink-3);
-}
-
-.review-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  background: var(--accent-soft);
-  border-color: transparent;
-}
-
-.review-card h2 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.review-card p {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--ink-2);
 }
 
 /* ---------- 作答中 ---------- */

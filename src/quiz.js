@@ -1,6 +1,6 @@
-import { GROUPS, ALL, BY_KANA, toKatakana, display, keyOf, confusables } from './kana.js';
+import { GROUPS, ALL, toKatakana, display, keyOf, confusables } from './kana.js';
 import { WORDS } from './words.js';
-import { getPref, setPref, record, weakKeys, weight, onStatsChange, slowLimit } from './store.js';
+import { getPref, setPref, record, mastery, getStat, weight, onStatsChange, slowLimit } from './store.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -42,6 +42,20 @@ function pickWeighted(qs, n) {
     .sort((a, b) => b.r - a.r)
     .slice(0, n)
     .map((x) => x.q);
+}
+
+// 常答錯的題目（和五十音表上紅點的標準一樣）。答對幾次、正確率回升後就不算了。
+const isWeak = (q) => mastery(qKey(q)) === 'weak';
+
+// 出題：範圍裡常答錯的一定會出（最多佔一半，錯越多的越優先），剩下的依熟練度加權抽
+function pickQuestions(qs, length) {
+  if (length === 'all' || qs.length <= length) return qs;
+  const misses = (q) => getStat(qKey(q)).w - getStat(qKey(q)).c;
+  const weak = shuffle(qs.filter(isWeak))
+    .sort((a, b) => misses(b) - misses(a))
+    .slice(0, Math.ceil(length / 2));
+  const rest = qs.filter((q) => !weak.includes(q));
+  return [...weak, ...pickWeighted(rest, length - weak.length)];
 }
 
 // 干擾選項：拼音不能和答案相同（じ／ぢ 都念 ji），長度相同（拗音配拗音）。
@@ -148,7 +162,7 @@ export function mountQuiz(root) {
   let screen = 'setup';
   let game = null;
   let timer = null;
-  let weakShown = -1; // 設定畫面上「複習常錯」顯示的數量
+  let weakShown = -1; // 設定畫面上顯示的「常答錯」數量
 
   const saveCfg = () => {
     setPref('quizContent', cfg.content);
@@ -168,20 +182,23 @@ export function mountQuiz(root) {
     return WORDS.filter((w) => scripts.includes(w.script) && w.kinds.every((k) => known.has(k)));
   };
 
-  const weakQuestions = () =>
-    weakKeys(20)
-      .map((k) => {
-        const [script, kana] = k.split(':');
-        return BY_KANA[kana] && SCRIPT_NAME[script] ? { item: BY_KANA[kana], script } : null;
-      })
-      .filter(Boolean);
+  // 目前設定下所有可能的題目
+  function cfgQuestions() {
+    if (cfg.content === 'word') {
+      const words = selectedWords();
+      const qs = words.map((item) => ({ item, script: item.script }));
+      return { qs, pool: words, mode: cfg.wordMode, ready: words.length >= WORD_MIN };
+    }
+    const items = selectedItems();
+    const qs = items.flatMap((item) => scriptsFor(cfg.script).map((script) => ({ item, script })));
+    return { qs, pool: items, mode: cfg.mode, ready: items.length > 0 };
+  }
 
-  function start(questions, pool, kind, mode) {
+  function start(questions, pool, mode) {
     clearTimeout(timer);
     game = {
       qs: shuffle(questions).map((q) => ({ ...q, options: (isWord(q.item) ? makeWordOptions : makeOptions)(q, pool) })),
       pool,
-      kind,
       mode, // k2r / r2k（假名）或 read / mean / pick（單字）
       i: 0,
       score: 0,
@@ -198,23 +215,8 @@ export function mountQuiz(root) {
   }
 
   function startFromCfg() {
-    if (cfg.content === 'word') {
-      const words = selectedWords();
-      if (words.length < WORD_MIN) return;
-      let qs = words.map((item) => ({ item, script: item.script }));
-      if (cfg.length !== 'all' && qs.length > cfg.length) qs = pickWeighted(qs, cfg.length);
-      return start(qs, words, 'normal', cfg.wordMode);
-    }
-    const items = selectedItems();
-    if (!items.length) return;
-    let qs = items.flatMap((item) => scriptsFor(cfg.script).map((script) => ({ item, script })));
-    if (cfg.length !== 'all' && qs.length > cfg.length) qs = pickWeighted(qs, cfg.length);
-    start(qs, items, 'normal', cfg.mode);
-  }
-
-  function startReview() {
-    const qs = weakQuestions();
-    if (qs.length) start(qs, ALL, 'review', cfg.mode);
+    const { qs, pool, mode, ready } = cfgQuestions();
+    if (ready) start(pickQuestions(qs, cfg.length), pool, mode);
   }
 
   function answer(idx) {
@@ -257,26 +259,16 @@ export function mountQuiz(root) {
   function drawSetup() {
     const items = selectedItems();
     const wordMode = cfg.content === 'word';
-    const words = wordMode ? selectedWords() : [];
-    const total = wordMode ? words.length : items.length * scriptsFor(cfg.script).length;
-    const ready = wordMode ? words.length >= WORD_MIN : items.length > 0;
+    const noun = wordMode ? '單字' : '假名';
+    const { qs, ready } = cfgQuestions();
+    const words = wordMode ? qs.length : 0;
+    const total = qs.length;
+    const weak = qs.filter(isWeak).length;
+    weakShown = weak;
     const emptyHint = wordMode ? '這個範圍能組成的單字太少，多選幾行吧' : '先選至少一個範圍喔';
-    const weak = weakQuestions();
-    weakShown = weak.length;
     const label = (g) => (cfg.script === 'kata' ? toKatakana(g.label) : g.label);
 
     el.innerHTML = `
-      ${
-        weak.length
-          ? `<section class="card review-card">
-              <div>
-                <h2>複習常錯的假名</h2>
-                <p>有 ${weak.length} 個假名比較常答錯，先把它們練熟吧。</p>
-              </div>
-              <button type="button" class="btn primary" data-act="review">開始複習</button>
-            </section>`
-          : ''
-      }
       <section class="card setup">
         <div class="field">
           <p class="field-label">內容</p>
@@ -291,7 +283,7 @@ export function mountQuiz(root) {
           ${seg('script', SCRIPTS, cfg.script)}
         </div>
         <div class="field">
-          <p class="field-label"><span>範圍</span><span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words.length} 個單字` : ''}</span></p>
+          <p class="field-label"><span>範圍</span><span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : ''}</span></p>
           <div class="chips">
             ${GROUPS.map(
               (g) => `<button type="button" class="chip${g.kind === 'seion' ? ' kana-chip' : ''}" data-group="${g.id}"
@@ -304,6 +296,7 @@ export function mountQuiz(root) {
             <button type="button" class="link-btn" data-quick="none">清除</button>
           </div>
           ${wordMode ? '<p class="range-note">只會出現用已選的假名就能寫出來的單字。</p>' : ''}
+          ${weak ? `<p class="range-note weak-note">其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
         </div>
         <div class="field">
           <p class="field-label">題數</p>
@@ -421,7 +414,7 @@ export function mountQuiz(root) {
     </ul>`;
     el.innerHTML = `
       <section class="card result">
-        <p class="result-label">${game.kind === 'review' ? '複習完成' : '測驗完成'}</p>
+        <p class="result-label">測驗完成</p>
         <div class="score">${game.score}<small> / ${n}</small></div>
         <p class="msg">${resultMessage(pct, word)}</p>
         <div class="stats-row">
@@ -481,14 +474,13 @@ export function mountQuiz(root) {
       const q = game?.qs[game.i];
       switch (t.dataset.act) {
         case 'start': return startFromCfg();
-        case 'review': return startReview();
         case 'next': return next();
         case 'speak': return q && say(show(q.item, q.script), { force: true });
         case 'speak-ex': return q?.item.dict && say(q.item.dict.ex, { force: true });
-        case 'again': return game.kind === 'review' ? startReview() : startFromCfg();
+        case 'again': return startFromCfg();
         case 'retry-miss': {
           const qs = uniqBy(game.mistakes, qKey).map(({ item, script }) => ({ item, script }));
-          return start(qs, game.pool, game.kind, game.mode);
+          return start(qs, game.pool, game.mode);
         }
         case 'quit':
         case 'setup':
@@ -520,9 +512,9 @@ export function mountQuiz(root) {
   };
   document.addEventListener('keydown', onKey);
 
-  // 其他裝置的紀錄同步進來時，設定畫面的「複習常錯的假名」可能要更新
+  // 其他裝置的紀錄同步進來時，設定畫面的「常答錯」數量可能要更新
   const offStats = onStatsChange(() => {
-    if (screen === 'setup' && weakQuestions().length !== weakShown) draw();
+    if (screen === 'setup' && cfgQuestions().qs.filter(isWeak).length !== weakShown) draw();
   });
 
   draw();
