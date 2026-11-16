@@ -134,8 +134,8 @@ Paper and ink carry the whole interface. Two status colours appear only when an 
 
 ### Secondary
 - **Teacher's Vermilion** (#c2301a): the cross on a wrong option, the wrong-answer message, the often-missed mark on a kana, and the note that says how many selected kana are often missed.
-- **Vermilion Wash** (#fbe8e3): fill of the option the learner got wrong and of the feedback line after a wrong answer.
-- **Correct Green** (#1d6b3e) and **Green Wash** (#e3f2e7): the right option and the feedback line after a right answer. The owner asked for status colours here. Mastery marks stay ink.
+- **Vermilion Wash** (#fbe8e3): fill of the option the learner got wrong.
+- **Correct Green** (#1d6b3e) and **Green Wash** (#e3f2e7): the right option, and only the option. The owner asked for status colour on the options and not on the feedback line, which stays paper with an ink border. Mastery marks stay ink.
 - At night: vermilion #ff8f76 on #40261f, green #7fd9a2 on #1d3527.
 
 ### Neutral
@@ -212,7 +212,7 @@ Corners are 2px everywhere. The only round shapes are the two mastery marks (a s
 - Quiz range. A two-column ruled table of toggles; each shows the kana in the row with their romaji underneath. Selected rows are ink-filled.
 
 ### Slips
-- Things that sit on the page as a separate piece of paper (the first-visit note, the feedback line, the floating bars) take a 1.5px ink border in the light theme, since paper on paper would otherwise vanish. The feedback line takes its status colour for border and fill once an answer is judged.
+- Things that sit on the page as a separate piece of paper (the first-visit note, the feedback line, the floating bars) take a 1.5px ink border in the light theme, since paper on paper would otherwise vanish.
 
 ### Navigation
 - Two tabs in a 1px On Band Muted frame in the ink band. The current tab is a paper block with ink text; the other is On Band text and takes Band Raised on hover.

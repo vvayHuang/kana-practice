@@ -1416,18 +1416,6 @@ body.is-playing::before {
   box-shadow: var(--lift);
 }
 
-/* 回饋列跟著答對、答錯換狀態色（寫在後面，貼底的紙條也適用） */
-.feedback.ok {
-  background: var(--ok-soft);
-  border-color: var(--ok);
-}
-
-.feedback.bad {
-  background: var(--shu-soft);
-  border-color: var(--shu);
-}
-
-
 .fb-text {
   display: flex;
   flex-direction: column;
@@ -1441,7 +1429,7 @@ body.is-playing::before {
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  color: var(--ok);
+  color: var(--ink);
 }
 
 .fb-text.bad {
