@@ -1008,6 +1008,11 @@ body.is-playing {
   --top-h: 0px;
 }
 
+/* 作答時底部固定著選項和回饋列，捲到某個元素時要避開它 */
+html:has(body.is-playing) {
+  scroll-padding-bottom: 280px;
+}
+
 body.is-playing .top {
   display: none;
 }
@@ -1020,7 +1025,13 @@ body.is-playing::before {
 .play {
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - var(--top-h) - 36px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  /* 整個作答畫面剛好一個螢幕高：題目區塊佔剩下的空間，回答前後一樣高 */
+  height: max(460px, calc(100dvh - var(--top-h) - 12px - env(safe-area-inset-top, 0px)));
+}
+
+/* 作答時頁面底部不留白，底部那一塊才會貼齊螢幕下緣 */
+body.is-playing .wrap {
+  padding-bottom: 0;
 }
 
 .play-top {
@@ -1056,17 +1067,22 @@ body.is-playing::before {
 
 .prompt {
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   text-align: center;
   padding: 20px var(--sheet-x) 12px;
 }
 
+/* 單字答完後字典解釋比較長：在題目區塊裡面捲動，區塊本身不變高 */
 .prompt.answered {
-  flex: none;
   justify-content: flex-start;
 }
 
@@ -1254,17 +1270,28 @@ body.is-playing::before {
   color: var(--ink-2);
 }
 
+/* 選項和回饋列固定在畫面底部，高度不變：答題前後、題目長短都不會讓它們上下移動。
+   題目下面的字典解釋比較長時，內容在它後面捲動。 */
+.dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--felt);
+}
+
 .options {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 12px;
 }
 
 .opt {
   position: relative;
-  min-height: 76px;
-  padding: 8px;
+  height: 76px;
+  padding: 4px 8px;
+  line-height: 1.25;
+  overflow: hidden;
   border: 1.5px solid var(--ink);
   border-radius: var(--r);
   background: var(--paper);
@@ -1392,28 +1419,21 @@ body.is-playing::before {
 }
 
 .feedback {
-  min-height: 68px;
+  height: 72px;
   margin-top: 8px;
-  padding: 10px 10px 10px 16px;
+  padding: 0 10px 0 16px;
+  border: 1.5px solid transparent;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-/* 有內容時才是一張紙條；沒內容時只佔位，避免版面跳動 */
+/* 有內容時才是一張紙條；沒內容時只佔位，位置和高度都一樣 */
 .feedback:not(:empty) {
   background: var(--paper);
-  border: 1.5px solid var(--edge);
-  border-radius: var(--r);
-}
-
-.feedback.sticky {
-  position: sticky;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 5;
-  border: 1.5px solid var(--ink);
-  box-shadow: var(--lift);
+  border-color: var(--edge);
 }
 
 .fb-text {
@@ -1439,6 +1459,13 @@ body.is-playing::before {
 .fb-text b {
   font-family: var(--font-kana);
   font-size: 22px;
+}
+
+.fb-text > span,
+.fb-text small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .fb-text small {

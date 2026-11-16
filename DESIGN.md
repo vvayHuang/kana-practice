@@ -178,7 +178,7 @@ Tables are CSS grids with a 1px gap over the rule colour, so the lines are the g
 
 The header is one 60px ink band at every width holding the two tabs and the action buttons. The product name is present only as a visually hidden heading. While a quiz is being answered the band is hidden so only the question shows; the close button at the top left of the play screen leaves the quiz.
 
-On the play screen the question takes the remaining height so the four options and the next button sit at the bottom of the viewport. Below 1000px the quiz setup keeps its start bar stuck to the bottom of the viewport.
+The play screen is exactly one viewport tall. The four options and the feedback line form a fixed-height block at the bottom that never moves; the question takes the remaining height and keeps that height before and after answering, with the dictionary entry scrolling inside it. Below 1000px the quiz setup keeps its start bar stuck to the bottom of the viewport.
 
 Touch targets are at least 44px.
 

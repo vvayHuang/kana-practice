@@ -414,6 +414,7 @@ export function mountQuiz(root) {
           ${explain ? entryHTML(q.item, mode) : ''}
         </section>
 
+        <div class="dock">
         <div class="options${word ? ' words' : ''}">
           ${q.options
             .map((o, idx) => {
@@ -428,7 +429,8 @@ export function mountQuiz(root) {
             .join('')}
         </div>
 
-        <div class="feedback${explain ? ' sticky' : ''}" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
+        <div class="feedback" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
+        </div>
       </div>`;
 
     // 不會自動跳題時，把焦點放到「下一題」，鍵盤直接按 Enter 就好
