@@ -10,13 +10,7 @@ const app = document.getElementById('app');
 app.innerHTML = `
   <header class="top">
     <div class="top-inner">
-      <div class="brand">
-        <span class="logo" aria-hidden="true">あ</span>
-        <div>
-          <h1 lang="ja">かな練習帳</h1>
-          <p>五十音・平假名・片假名</p>
-        </div>
-      </div>
+      <h1 class="vh" lang="ja">かな練習帳</h1>
       <nav class="tabs" aria-label="主要功能">
         <div class="tabs-inner">
           <a href="#chart" data-route="chart">五十音表</a>

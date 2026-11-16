@@ -13,7 +13,7 @@ Audience and job: a beginner who cannot read kana yet, practising in short one-h
 
 Constraints: the owner pinned a 習字帖 look, ink as the main colour, red only for correction (wrong answers, often-missed kana). No image generation is available, so the build is code-led. Stylesheets may only come from Google Fonts; everything else is inline.
 
-Unresolved: whether the owner prefers a white-paper ground over the felt ground (the tokens make that a one-line swap).
+Resolved by the owner after trying the build: the light theme is white paper for the whole page with an ink header band (the navy felt ground was dropped), and the logo and product name were removed from the header. The contract below describes the first build; DESIGN.md describes the system as it now stands.
 
 ## Direction contract
 

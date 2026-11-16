@@ -1,12 +1,23 @@
-/* 書道桌面：深藍氈墊上鋪著白色半紙，墨色書寫，朱紅只用來批改。
-   氈墊（felt）是頁面的底；紙（paper）是內容；墨（ink）是文字和主要按鈕；朱（shu）只出現在答錯和常答錯。 */
+/* 一張習字紙：整頁是白紙，墨色書寫，朱紅只用來批改；頁首是一條墨色的帶子。
+   底（felt）白天就是紙，夜裡是比紙更深的桌面；紙（paper）是內容；帶（band）是頁首；
+   墨（ink）是文字和主要按鈕；朱（shu）只出現在答錯和常答錯。 */
 
 :root {
-  --felt: #1b2338;
-  --felt-2: #28324d;
-  --felt-line: rgb(255 255 255 / 0.06);
-  --on-felt: #f3f1ea;
-  --on-felt-2: #b9c0d4;
+  --felt: #fbfaf6;
+  --felt-2: #efeee8;
+  --felt-line: transparent;
+  --on-felt: #15171c;
+  --on-felt-2: #5d6370;
+
+  --band: #15171c;
+  --band-2: #2e313a;
+  --on-band: #fbfaf6;
+  --on-band-2: #adb1bc;
+
+  /* 白天紙和底同色，浮起來的紙條靠墨線框出來；紙的左右內距也比較小 */
+  --edge: #15171c;
+  --sheet-x: 4px;
+  --col-gap: 40px;
 
   --paper: #fbfaf6;
   --paper-2: #efeee8;
@@ -19,7 +30,7 @@
   --shu: #c2301a;
   --shu-soft: #fbe8e3;
 
-  --lift: 0 8px 24px rgb(6 10 22 / 0.38);
+  --lift: 0 8px 24px rgb(21 23 28 / 0.22);
   --r: 2px;
   --top-h: 61px;
 
@@ -30,7 +41,7 @@
   color-scheme: light;
 }
 
-/* 夜裡：氈墊更深，紙變成深色，墨變成淺色 */
+/* 夜裡：底是深色桌面，紙變成深色，墨變成淺色 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --felt: #0f131d;
@@ -38,6 +49,13 @@
     --felt-line: rgb(255 255 255 / 0.04);
     --on-felt: #eef0f4;
     --on-felt-2: #a9b1c5;
+    --band: #0f131d;
+    --band-2: #1c2233;
+    --on-band: #eef0f4;
+    --on-band-2: #a9b1c5;
+    --edge: transparent;
+    --sheet-x: 16px;
+    --col-gap: 12px;
     --paper: #232836;
     --paper-2: #2d3344;
     --ink: #eef0f4;
@@ -58,6 +76,13 @@
   --felt-line: rgb(255 255 255 / 0.04);
   --on-felt: #eef0f4;
   --on-felt-2: #a9b1c5;
+  --band: #0f131d;
+  --band-2: #1c2233;
+  --on-band: #eef0f4;
+  --on-band-2: #a9b1c5;
+  --edge: transparent;
+  --sheet-x: 16px;
+  --col-gap: 12px;
   --paper: #232836;
   --paper-2: #2d3344;
   --ink: #eef0f4;
@@ -94,14 +119,14 @@ body {
   caret-color: var(--ink);
 }
 
-/* 瀏海／狀態列那一塊也鋪上氈墊 */
+/* 瀏海／狀態列那一塊接著頁首的墨帶 */
 body::before {
   content: '';
   position: fixed;
   inset: 0 0 auto 0;
   height: env(safe-area-inset-top, 0px);
   z-index: 10;
-  background: var(--felt);
+  background: var(--band);
 }
 
 ::selection {
@@ -142,14 +167,18 @@ button {
   white-space: nowrap;
 }
 
-/* ---------- 頁首：氈墊上的名牌、分頁、按鈕 ---------- */
+/* ---------- 頁首：一條墨帶，上面是分頁和按鈕 ---------- */
 
+/* 頁首裡把「底」換成墨帶的顏色，裡面的元件就不用另外寫一套 */
 .top {
+  --felt: var(--band);
+  --felt-2: var(--band-2);
+  --on-felt: var(--on-band);
+  --on-felt-2: var(--on-band-2);
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 10;
-  background: var(--felt);
-  border-bottom: 1px solid var(--felt-line);
+  background: var(--band);
 }
 
 .top-inner,
@@ -167,58 +196,19 @@ button {
   height: 60px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-/* 名牌：一小張紙，寫著「あ」 */
-.logo {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r);
-  background: var(--paper);
-  color: var(--ink);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-kana);
-  font-weight: 600;
-  font-size: 26px;
-  line-height: 1;
-}
-
-.brand h1 {
+.top h1 {
   margin: 0;
-  font-family: var(--font-kana);
-  font-weight: 600;
-  font-size: 19px;
-  line-height: 1.2;
-  color: var(--on-felt);
-  white-space: nowrap;
-}
-
-.brand p {
-  margin: 0;
-  font-size: 12px;
-  color: var(--on-felt-2);
-  white-space: nowrap;
 }
 
 .tabs {
   flex: 1;
   min-width: 0;
-  display: flex;
-  justify-content: flex-end;
 }
 
 .tabs-inner {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: 100%;
-  max-width: 240px;
+  max-width: 320px;
   border: 1px solid var(--on-felt-2);
   border-radius: var(--r);
 }
@@ -254,25 +244,9 @@ button {
   gap: 8px;
 }
 
-/* 手機上只留名牌，標題文字留給螢幕閱讀器 */
 @media (max-width: 560px) {
-  .brand > div {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
   .tabs-inner {
     max-width: none;
-  }
-}
-
-@media (max-width: 360px) {
-  .tabs a {
-    font-size: 15px;
   }
 }
 
@@ -283,11 +257,11 @@ button {
 
 /* ---------- 共用元件 ---------- */
 
-/* 一張紙：方角、沒有陰影，直接躺在氈墊上 */
+/* 一張紙：方角、沒有陰影。白天和頁面同色，靠表格的墨框和留白分段；夜裡比桌面亮一階 */
 .sheet {
   background: var(--paper);
   border-radius: var(--r);
-  padding: 18px 16px;
+  padding: 18px var(--sheet-x);
   margin-bottom: 12px;
 }
 
@@ -320,7 +294,7 @@ button {
   }
 }
 
-/* 氈墊上的按鈕 */
+/* 頁首墨帶上、作答畫面上方的按鈕 */
 .top .icon-btn,
 .play-top .icon-btn {
   border-color: var(--on-felt-2);
@@ -498,6 +472,8 @@ button {
 
 /* 第一次來的人看到的紙條 */
 .start-card {
+  padding: 16px;
+  border: 1.5px solid var(--edge);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1066,7 +1042,7 @@ button {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px 16px 12px;
+  padding: 20px var(--sheet-x) 12px;
 }
 
 .prompt.answered {
@@ -1344,7 +1320,7 @@ button {
   color: var(--shu);
 }
 
-/* 沒選到的選項退到氈墊裡 */
+/* 沒選到的選項退成虛線框 */
 .opt.dim {
   background: transparent;
   border: 1px dashed var(--on-felt-2);
@@ -1403,6 +1379,7 @@ button {
 /* 有內容時才是一張紙條；沒內容時只佔位，避免版面跳動 */
 .feedback:not(:empty) {
   background: var(--paper);
+  border: 1.5px solid var(--edge);
   border-radius: var(--r);
 }
 
@@ -1458,7 +1435,7 @@ button {
 /* ---------- 測驗：結果 ---------- */
 
 .result {
-  padding: 24px 16px 16px;
+  padding: 24px var(--sheet-x) 16px;
 }
 
 .score {
@@ -1558,7 +1535,7 @@ button {
   .chart {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 12px;
+    gap: 12px var(--col-gap);
     align-items: start;
   }
 
@@ -1579,7 +1556,7 @@ button {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto 1fr;
-    gap: 12px;
+    gap: 12px var(--col-gap);
     align-items: start;
   }
 

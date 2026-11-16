@@ -38,6 +38,7 @@ Practice adapts to the learner. The quiz records right answers, wrong answers an
 
 - Name: かな練習帳 (a practice notebook).
 - The owner asked for a 習字帖 (calligraphy practice book) look: ink as the main colour, red reserved for correction marks (wrong answers, often-missed kana).
+- The owner chose a white paper page with an ink header band, and asked for the logo and product name to be removed from the header.
 - The owner finds the previous look generic and does not want it kept.
 
 ## Evidence on Hand

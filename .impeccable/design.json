@@ -4,66 +4,6 @@
   "title": "Design System: かな練習帳",
   "extensions": {
     "colorMeta": {
-      "felt": {
-        "role": "neutral",
-        "displayName": "Navy Felt",
-        "canonical": "#1b2338",
-        "tonalRamp": [
-          "#141a29",
-          "#283453",
-          "#3c4d7c",
-          "#5067a5",
-          "#7589bd",
-          "#9facd1",
-          "#c8d0e4",
-          "#eef0f7"
-        ]
-      },
-      "felt-raised": {
-        "role": "neutral",
-        "displayName": "Felt Raised",
-        "canonical": "#28324d",
-        "tonalRamp": [
-          "#151a28",
-          "#2a3451",
-          "#3f4e79",
-          "#5469a1",
-          "#798ab9",
-          "#a1adce",
-          "#c9d0e3",
-          "#eef0f6"
-        ]
-      },
-      "on-felt": {
-        "role": "neutral",
-        "displayName": "On Felt",
-        "canonical": "#f3f1ea",
-        "tonalRamp": [
-          "#272316",
-          "#4e462d",
-          "#756a43",
-          "#9c8d59",
-          "#b5a87d",
-          "#cbc2a4",
-          "#e1dccb",
-          "#f6f4ef"
-        ]
-      },
-      "on-felt-muted": {
-        "role": "neutral",
-        "displayName": "On Felt Muted",
-        "canonical": "#b9c0d4",
-        "tonalRamp": [
-          "#171b26",
-          "#2f364c",
-          "#465172",
-          "#5d6c98",
-          "#818db1",
-          "#a7afc9",
-          "#ccd2e0",
-          "#eff1f5"
-        ]
-      },
       "paper": {
         "role": "neutral",
         "displayName": "Paper",
@@ -198,6 +138,66 @@
           "#f5c4b8",
           "#fcede9"
         ]
+      },
+      "band": {
+        "role": "neutral",
+        "displayName": "Ink Band",
+        "canonical": "#15171c",
+        "tonalRamp": [
+          "#1a1d23",
+          "#343946",
+          "#4f5669",
+          "#69738c",
+          "#8a93a8",
+          "#adb3c2",
+          "#d0d4dc",
+          "#f0f1f4"
+        ]
+      },
+      "band-raised": {
+        "role": "neutral",
+        "displayName": "Band Raised",
+        "canonical": "#2e313a",
+        "tonalRamp": [
+          "#1b1d22",
+          "#363a44",
+          "#515766",
+          "#6c7389",
+          "#8d93a5",
+          "#afb3c0",
+          "#d1d4db",
+          "#f1f2f4"
+        ]
+      },
+      "on-band": {
+        "role": "neutral",
+        "displayName": "On Band",
+        "canonical": "#fbfaf6",
+        "tonalRamp": [
+          "#2a2613",
+          "#554b26",
+          "#7f7138",
+          "#a9974b",
+          "#c0b172",
+          "#d3c89c",
+          "#e6e0c7",
+          "#f7f5ed"
+        ]
+      },
+      "on-band-muted": {
+        "role": "neutral",
+        "displayName": "On Band Muted",
+        "canonical": "#adb1bc",
+        "tonalRamp": [
+          "#1c1d22",
+          "#373a43",
+          "#535765",
+          "#6e7587",
+          "#8f94a3",
+          "#b0b4bf",
+          "#d2d4da",
+          "#f1f2f4"
+        ]
       }
     },
     "typographyMeta": {
@@ -229,7 +229,7 @@
     "shadows": [
       {
         "name": "lift",
-        "value": "0 8px 24px rgb(6 10 22 / 0.38)",
+        "value": "0 8px 24px rgb(21 23 28 / 0.22)",
         "purpose": "Only for things that float over other content: detail slip, sticky bars, toast."
       }
     ],
@@ -290,12 +290,12 @@
       "css": ".ds-seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--ink);border-radius:2px}.ds-seg button{border:0;background:transparent;padding:6px 10px;min-height:44px;font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:15px;color:var(--ink);cursor:pointer}.ds-seg button+button{border-left:1px solid var(--ink)}.ds-seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}.ds-seg button[aria-pressed=false]:hover{background:var(--paper-2)}"
     },
     {
-      "name": "Tabs on felt",
+      "name": "Tabs in the ink band",
       "kind": "nav",
       "refersTo": "tab-current",
       "description": "Top-level navigation; the current tab is a paper block.",
       "html": "<nav class=\"ds-tabs\"><a aria-current=\"page\" href=\"#\">五十音表</a><a href=\"#\">測驗</a></nav>",
-      "css": ".ds-tabs{display:grid;grid-template-columns:1fr 1fr;width:240px;border:1px solid var(--on-felt-2);border-radius:2px;background:var(--felt)}.ds-tabs a{display:flex;align-items:center;justify-content:center;min-height:44px;color:var(--on-felt);text-decoration:none;font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:16px}.ds-tabs a[aria-current=page]{background:var(--paper);color:var(--ink)}.ds-tabs a:not([aria-current]):hover{background:var(--felt-2)}"
+      "css": ".ds-tabs{display:grid;grid-template-columns:1fr 1fr;width:240px;border:1px solid var(--on-band-2);border-radius:2px;background:var(--band)}.ds-tabs a{display:flex;align-items:center;justify-content:center;min-height:44px;color:var(--on-band);text-decoration:none;font-family:'LXGW WenKai TC','Klee One',serif;font-weight:700;font-size:16px}.ds-tabs a[aria-current=page]{background:var(--paper);color:var(--ink)}.ds-tabs a:not([aria-current]):hover{background:var(--band-2)}"
     },
     {
       "name": "Practice cell",
@@ -315,11 +315,11 @@
     }
   ],
   "narrative": {
-    "northStar": "The Calligraphy Desk",
-    "overview": "The screen is a desk set for writing practice. A navy felt mat is the ground. White sheets of paper lie on it with square corners and no shadow. Everything the learner reads is written in ink, and the only other colour is the teacher's vermilion pen, which appears where an answer was wrong and nowhere else.\n\nThe kana is the subject. It sits in a ruled practice cell with dashed centre guides, the same cell whether it is one of 46 in the chart, a missed kana in the results, or the single large character of a quiz question. Controls stay plain: a selected thing is filled with ink, an unselected thing is an outline.",
+    "northStar": "The Practice Sheet",
+    "overview": "The whole page is one sheet of white practice paper. Everything the learner reads is written in ink, and the only other colour is the teacher's vermilion pen, which appears where an answer was wrong and nowhere else. A single ink band across the top carries the two tabs and the sound button; there is no logo or product name in it.\n\nThe kana is the subject. It sits in a ruled practice cell with dashed centre guides, the same cell whether it is one of 46 in the chart, a missed kana in the results, or the single large character of a quiz question. Controls stay plain: a selected thing is filled with ink, an unselected thing is an outline.",
     "keyCharacteristics": [
-      "Felt ground, paper sheets, ink marks, vermilion corrections",
-      "Square corners (2px) and hairline rules instead of cards and shadows",
+      "White paper page, ink marks, vermilion corrections, one ink band at the top",
+      "Square corners (2px) and ruled tables instead of cards and shadows",
       "Kana always in a guided cell",
       "Selection shown by ink fill, never by colour",
       "One-thumb reach: the primary action sits at the bottom of the screen"
@@ -347,7 +347,7 @@
       }
     ],
     "dos": [
-      "Do put content on a paper sheet and controls that belong to the whole screen on the felt.",
+      "Do keep the page white paper and let ruled tables and space separate sections.",
       "Do show kana in a guided practice cell.",
       "Do show selection with ink fill.",
       "Do keep the main action within thumb reach at the bottom of the screen.",
@@ -355,7 +355,8 @@
     ],
     "donts": [
       "Don't use vermilion for anything except marking something wrong.",
-      "Don't add rounded cards, soft shadows on resting surfaces, or a cream ground.",
+      "Don't add rounded cards, soft shadows on resting surfaces, a cream ground, or a coloured ground behind the paper in the light theme.",
+      "Don't put a logo or the product name back in the header band.",
       "Don't add green for success; a right answer is marked in ink.",
       "Don't set kana in any face other than Klee One."
     ]
