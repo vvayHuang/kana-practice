@@ -29,6 +29,9 @@
 
   --shu: #c2301a;
   --shu-soft: #fbe8e3;
+  /* 狀態色：答對用綠、答錯用朱 */
+  --ok: #1d6b3e;
+  --ok-soft: #e3f2e7;
 
   --lift: 0 8px 24px rgb(21 23 28 / 0.22);
   --r: 2px;
@@ -65,6 +68,8 @@
     --guide: #353c4e;
     --shu: #ff8f76;
     --shu-soft: #40261f;
+    --ok: #7fd9a2;
+    --ok-soft: #1d3527;
     --lift: 0 8px 24px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
@@ -92,6 +97,8 @@
   --guide: #353c4e;
   --shu: #ff8f76;
   --shu-soft: #40261f;
+  --ok: #7fd9a2;
+  --ok-soft: #1d3527;
   --lift: 0 8px 24px rgb(0 0 0 / 0.5);
   color-scheme: dark;
 }
@@ -996,6 +1003,19 @@ button {
 
 /* ---------- 測驗：作答 ---------- */
 
+/* 作答時收起頁首的墨帶，畫面只留題目；左上角的叉可以離開測驗 */
+body.is-playing {
+  --top-h: 0px;
+}
+
+body.is-playing .top {
+  display: none;
+}
+
+body.is-playing::before {
+  background: var(--felt);
+}
+
 /* 題目的紙撐滿上半部，選項和「下一題」貼在下方 */
 .play {
   display: flex;
@@ -1306,11 +1326,16 @@ button {
   cursor: default;
 }
 
-/* 答對的那一格：留在紙上，墨框加粗，再用墨筆圈起來 */
+/* 答對的那一格：綠色，框加粗，再圈起來 */
 .opt.correct {
-  background: var(--paper);
-  color: var(--ink);
-  box-shadow: inset 0 0 0 2.5px var(--ink);
+  border-color: var(--ok);
+  background: var(--ok-soft);
+  color: var(--ok);
+  box-shadow: inset 0 0 0 2.5px var(--ok);
+}
+
+.opt.correct .num {
+  color: var(--ok);
 }
 
 /* 答錯的那一格：朱筆畫叉 */
@@ -1356,7 +1381,7 @@ button {
 }
 
 .strike circle {
-  stroke: var(--ink);
+  stroke: var(--ok);
   animation-duration: 0.32s;
 }
 
@@ -1391,6 +1416,18 @@ button {
   box-shadow: var(--lift);
 }
 
+/* 回饋列跟著答對、答錯換狀態色（寫在後面，貼底的紙條也適用） */
+.feedback.ok {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.feedback.bad {
+  background: var(--shu-soft);
+  border-color: var(--shu);
+}
+
+
 .fb-text {
   display: flex;
   flex-direction: column;
@@ -1404,7 +1441,7 @@ button {
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  color: var(--ink);
+  color: var(--ok);
 }
 
 .fb-text.bad {

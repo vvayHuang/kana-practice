@@ -198,6 +198,36 @@
           "#d2d4da",
           "#f1f2f4"
         ]
+      },
+      "correct-green": {
+        "role": "secondary",
+        "displayName": "Correct Green",
+        "canonical": "#1d6b3e",
+        "tonalRamp": [
+          "#0b2817",
+          "#16502e",
+          "#217846",
+          "#2ca05d",
+          "#42c577",
+          "#72d49a",
+          "#a2e3bc",
+          "#e0f5e8"
+        ]
+      },
+      "correct-green-soft": {
+        "role": "secondary",
+        "displayName": "Green Wash",
+        "canonical": "#e3f2e7",
+        "tonalRamp": [
+          "#0e2715",
+          "#1c4e2a",
+          "#2a753f",
+          "#389c54",
+          "#58bb74",
+          "#86cd9a",
+          "#b4dfc0",
+          "#edf7f0"
+        ]
       }
     },
     "typographyMeta": {
@@ -316,9 +346,9 @@
   ],
   "narrative": {
     "northStar": "The Practice Sheet",
-    "overview": "The whole page is one sheet of white practice paper. Everything the learner reads is written in ink, and the only other colour is the teacher's vermilion pen, which appears where an answer was wrong and nowhere else. A single ink band across the top carries the two tabs and the sound button; there is no logo or product name in it.\n\nThe kana is the subject. It sits in a ruled practice cell with dashed centre guides, the same cell whether it is one of 46 in the chart, a missed kana in the results, or the single large character of a quiz question. Controls stay plain: a selected thing is filled with ink, an unselected thing is an outline.",
+    "overview": "The whole page is one sheet of white practice paper. Everything the learner reads is written in ink. Colour is kept for answer status: vermilion where something was wrong, green where an answer was right. A single ink band across the top carries the two tabs and the sound button; there is no logo or product name in it.\n\nThe kana is the subject. It sits in a ruled practice cell with dashed centre guides, the same cell whether it is one of 46 in the chart, a missed kana in the results, or the single large character of a quiz question. Controls stay plain: a selected thing is filled with ink, an unselected thing is an outline.",
     "keyCharacteristics": [
-      "White paper page, ink marks, vermilion corrections, one ink band at the top",
+      "White paper page, ink marks, status colour only on answers, one ink band at the top",
       "Square corners (2px) and ruled tables instead of cards and shadows",
       "Kana always in a guided cell",
       "Selection shown by ink fill, never by colour",
@@ -326,8 +356,8 @@
     ],
     "rules": [
       {
-        "name": "The Red Pen Rule",
-        "body": "Vermilion means \"this was wrong\". It is never used for brand, emphasis, links, primary buttons or selection.",
+        "name": "The Status Only Rule",
+        "body": "Vermilion means \"this was wrong\" and green means \"this was right\". Neither is used for brand, emphasis, links, primary buttons or selection.",
         "section": "colors"
       },
       {
@@ -354,10 +384,9 @@
       "Do keep text on paper at Ink Tertiary (#5d6370) or darker."
     ],
     "donts": [
-      "Don't use vermilion for anything except marking something wrong.",
+      "Don't use vermilion for anything except marking something wrong, or green for anything except marking an answer right.",
       "Don't add rounded cards, soft shadows on resting surfaces, a cream ground, or a coloured ground behind the paper in the light theme.",
       "Don't put a logo or the product name back in the header band.",
-      "Don't add green for success; a right answer is marked in ink.",
       "Don't set kana in any face other than Klee One."
     ]
   }

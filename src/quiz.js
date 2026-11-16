@@ -428,7 +428,7 @@ export function mountQuiz(root) {
             .join('')}
         </div>
 
-        <div class="feedback${explain ? ' sticky' : ''}" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
+        <div class="feedback${explain ? ' sticky' : ''}${game.answered ? (ok ? ' ok' : ' bad') : ''}" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
       </div>`;
 
     // 不會自動跳題時，把焦點放到「下一題」，鍵盤直接按 Enter 就好
@@ -474,6 +474,7 @@ export function mountQuiz(root) {
     else if (screen === 'result') drawResult();
     else drawSetup();
     el.classList.toggle('is-setup', screen === 'setup'); // 寬螢幕上設定畫面分成左右兩欄
+    document.body.classList.toggle('is-playing', screen === 'play'); // 作答時收起頁首，畫面只留題目
     // 換畫面或換題時回到頂端，題目才不會被頁首擋住
     const idx = screen === 'play' ? game.i : -1;
     if (screen !== lastScreen || idx !== lastIndex) window.scrollTo(0, 0);
@@ -557,6 +558,7 @@ export function mountQuiz(root) {
   draw();
   return () => {
     clearTimeout(timer);
+    document.body.classList.remove('is-playing');
     document.removeEventListener('keydown', onKey);
     offStats();
   };
