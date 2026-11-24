@@ -176,6 +176,30 @@ export function onRecord(fn) {
   return () => recordListeners.delete(fn);
 }
 
+// 這台裝置的雲端紀錄被合併到別份之後，把已經算進去的次數扣掉，避免同一批答題算兩次。
+// 合併之後才答的題目會留下來。
+export function subtractOwnStats(done) {
+  change(() => {
+    for (const [key, d] of Object.entries(done || {})) {
+      const s = state.stats[key];
+      if (!s) continue;
+      s.c = Math.max(0, s.c - (Number(d?.c) || 0));
+      s.w = Math.max(0, s.w - (Number(d?.w) || 0));
+      const n = (Number(s.n) || 0) - (Number(d?.n) || 0);
+      if (n > 0) {
+        s.n = n;
+        s.t = Math.max(0, (Number(s.t) || 0) - (Number(d?.t) || 0));
+      } else {
+        delete s.n;
+        delete s.t;
+      }
+      if (s.c + s.w === 0) delete state.stats[key];
+    }
+  });
+  recompute();
+  remoteListeners.forEach((fn) => fn());
+}
+
 // 傳入其他裝置的紀錄（每台一份），有變動才通知畫面
 export function setOtherDevices(list) {
   const next = list.reduce((acc, s) => addStats(acc, s), {});

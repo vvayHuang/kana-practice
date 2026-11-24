@@ -52,6 +52,6 @@ npm run dev
 npm run build:artifact
 ```
 
-會輸出單一 HTML 檔 `dist-artifact/kana-practice.html`。發佈時要開啟 `db` 和 `user` 兩個功能，雲端同步才會運作。雲端資料存在 `data/users/<使用者>/<裝置>`，只有本人看得到。每台裝置各存一份 `{ stats, label, lastAt }`：答題次數、裝置名稱和最後答題時間（舊版存的只有 `stats`），畫面上顯示的是全部加起來的結果。
+會輸出單一 HTML 檔 `dist-artifact/kana-practice.html`。發佈時要開啟 `db` 和 `user` 兩個功能，雲端同步才會運作。雲端資料存在 `data/users/<使用者>/<裝置>`，只有本人看得到。每台裝置各存一份 `{ stats, label, lastAt }`：答題次數、裝置名稱和最後答題時間（舊版存的只有 `stats`），畫面上顯示的是全部加起來的結果。幾份紀錄合併成一份之後，原本那幾份會換成 `{ stats: {}, mergedInto, merged }`：那台裝置如果還在用，下次連上時會從自己的次數扣掉 `merged`，不會重複計算。
 
 「裝置」其實是瀏覽器裡存的一個編號：換瀏覽器、用無痕視窗，或網站資料被清掉後，會變成新的一份，所以份數常比實際的裝置多。雲按鈕因此不顯示數字，只在清單上列出每一份。
