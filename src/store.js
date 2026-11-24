@@ -6,7 +6,8 @@
 //   每份紀錄只有一台裝置在寫，所以兩台同時練習也不會互相蓋掉。
 
 const KEY = 'kana-practice:v1';
-let state = { stats: {}, prefs: {}, device: null };
+// lastAt：這台裝置最後一次答題的時間，只用來在同步清單上顯示「最後練習」
+let state = { stats: {}, prefs: {}, device: null, lastAt: null };
 let others = {}; // 其他裝置的次數加總（由 sync.js 填入）
 let total = {}; // 畫面上用的：這台裝置 + 其他裝置
 
@@ -15,7 +16,12 @@ function load() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw);
-      state = { stats: saved.stats || {}, prefs: saved.prefs || {}, device: saved.device || state.device };
+      state = {
+        stats: saved.stats || {},
+        prefs: saved.prefs || {},
+        device: saved.device || state.device,
+        lastAt: Number.isFinite(saved.lastAt) ? saved.lastAt : null,
+      };
     }
   } catch {
     /* 讀不到就用目前的紀錄 */
@@ -86,6 +92,7 @@ export const slowLimit = (key) => (isWordKey(key) ? SLOW_MS * 2 : SLOW_MS);
 
 export function record(key, ok, ms) {
   change(() => {
+    state.lastAt = Date.now();
     const s = state.stats[key] || (state.stats[key] = { c: 0, w: 0 });
     if (ok) s.c++;
     else s.w++;
@@ -157,6 +164,11 @@ export function getDeviceId() {
 export function getOwnStats() {
   load();
   return state.stats;
+}
+
+export function getOwnLastAt() {
+  load();
+  return state.lastAt;
 }
 
 export function onRecord(fn) {
