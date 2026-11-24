@@ -21,7 +21,7 @@ if (/<\/script/i.test(js) || /<\/style/i.test(css)) throw new Error('內容裡�
 
 const page = `<title>かな練習帳</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=LXGW+WenKai+TC:wght@400;700&display=swap">
 <style>
 ${css}
 </style>
