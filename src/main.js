@@ -1,6 +1,10 @@
 import './style.css';
 import { renderChart } from './chart.js';
 import { mountQuiz } from './quiz.js';
+import { renderWordbook } from './wordbook.js';
+import { renderSentencebook } from './sentencebook.js';
+import { renderScene } from './scenebook.js';
+import { SCENE_BY_ID } from './scenes.js';
 import { initSpeech } from './speech.js';
 import { getPref, setPref } from './store.js';
 import { initSync } from './sync.js';
@@ -14,8 +18,9 @@ app.innerHTML = `
       <h1 class="vh" lang="ja">かな練習帳</h1>
       <nav class="tabs" aria-label="主要功能">
         <div class="tabs-inner">
-          <a href="#chart" data-route="chart">五十音表</a>
-          <a href="#quiz" data-route="quiz">測驗</a>
+          <a href="#kana" data-route="kana">假名</a>
+          <a href="#words" data-route="words">單字</a>
+          <a href="#sentences" data-route="sentences">句子</a>
         </div>
       </nav>
       <div class="top-actions">
@@ -56,19 +61,58 @@ initSpeech();
 mountSyncButton(app);
 initSync();
 
-// 簡單的 hash 路由：#chart、#quiz
+// 簡單的 hash 路由。每個分頁先看熟悉度，再從底部的按鈕進去練習：
+//   #kana 五十音表 → #kana/quiz 練習假名
+//   #words 單字本 → #words/quiz 練習單字
+//   #sentences 情境題的卡片和單字的例句 → #sentences/quiz 練習例句、#scenes/quiz 練習情境題
+//   #scenes/greet 一個情境的題目 → #scenes/greet/quiz 練習這個情境（都算在句子分頁）
+const ROUTES = {
+  kana: (v) => renderChart(v),
+  'kana/quiz': (v) => mountQuiz(v, 'kana'),
+  words: (v) => renderWordbook(v),
+  'words/quiz': (v) => mountQuiz(v, 'word'),
+  sentences: (v) => renderSentencebook(v),
+  'sentences/quiz': (v) => mountQuiz(v, 'sentence'),
+  'scenes/quiz': (v) => mountQuiz(v, 'scene'),
+};
+
+// 一個情境的網址：#scenes/代號，後面加 /quiz 是練習
+function sceneRoute(h) {
+  const m = h.match(/^scenes\/([a-z]+)(\/quiz)?$/);
+  if (!m || !SCENE_BY_ID[m[1]]) return null;
+  return m[2] ? (v) => mountQuiz(v, 'scene', { scene: m[1] }) : (v) => renderScene(v, m[1]);
+}
+
+// 回傳 [網址名稱, 畫面]。舊網址：#chart 是五十音表；#quiz 是以前的測驗頁，看上次練的是假名還是單字
+function resolve(hash) {
+  const h = hash.replace(/^#/, '');
+  if (Object.hasOwn(ROUTES, h)) return [h, ROUTES[h]];
+  const scene = sceneRoute(h);
+  if (scene) return [h, scene];
+  const name = h === 'quiz' ? (getPref('quizContent', 'kana') === 'word' ? 'words/quiz' : 'kana/quiz') : 'kana';
+  return [name, ROUTES[name]];
+}
+
 const view = document.getElementById('view');
 let cleanup = null;
 
 function route() {
-  const name = location.hash === '#quiz' ? 'quiz' : 'chart';
+  const [name, mount] = resolve(location.hash);
+  if (location.hash !== `#${name}`) {
+    try {
+      history.replaceState(null, '', `#${name}`);
+    } catch {
+      /* 改不了網址也沒關係，畫面照常顯示 */
+    }
+  }
+  const tab = name.startsWith('scenes') ? 'sentences' : name.split('/')[0];
   document.querySelectorAll('[data-route]').forEach((a) => {
-    if (a.dataset.route === name) a.setAttribute('aria-current', 'page');
+    if (a.dataset.route === tab) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   cleanup?.();
   view.innerHTML = '';
-  cleanup = name === 'quiz' ? mountQuiz(view) : renderChart(view);
+  cleanup = mount(view);
   window.scrollTo(0, 0);
 }
 

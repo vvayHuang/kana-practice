@@ -1,13 +1,19 @@
 import { GROUPS, ALL, toKatakana, display, keyOf, confusables } from './kana.js';
 import { WORDS } from './words.js';
 import { getPref, setPref, record, mastery, getStat, weight, onStatsChange, slowLimit } from './store.js';
-import { say } from './speech.js';
+import { DEFAULT_GROUPS, itemsIn, scriptsFor, wordsIn } from './range.js';
+import { entryHTML, markWord } from './entry.js';
+import { sentencesIn, sentenceKey, prepSentence } from './sentences.js';
+import { SCENES, SCENE_BY_ID, SCENE_ITEMS, sceneKey } from './scenes.js';
+import { say, canSpeak } from './speech.js';
 import { icons } from './ui.js';
 
-const CONTENTS = { kana: '假名', word: '單字' };
 const MODES = { k2r: '看假名 選拼音', r2k: '看拼音 選假名' };
 const WORD_MODES = { read: '單字→拼音', mean: '單字→意思', pick: '意思→單字' };
-const WORD_MIN = 4; // 單字至少要有幾個才能出題（一題四個選項）
+const SENT_MODES = { mix: '混合', order: '排句子', mean: '選意思', listen: '聽句子' };
+const HINTS = { off: '關', on: '開' };
+const NOUN = { kana: '假名', word: '單字', sentence: '句子', scene: '情境題' };
+const WORD_MIN = 4; // 單字、句子至少要有幾個才能出題（一題四個選項）
 const SCRIPTS = { hira: '平假名', kata: '片假名', mix: '混合' };
 const SCRIPT_NAME = { hira: '平假名', kata: '片假名' };
 
@@ -30,10 +36,30 @@ const uniqBy = (arr, f) => {
   });
 };
 
-// 題目可能是假名或單字。單字自己帶著文字種類（script）和中文意思（zh）。
-const isWord = (item) => 'zh' in item;
+// 題目可能是假名、單字、句子或情境題。單字自己帶著文字種類（script）和中文意思（zh）；
+// 句子的 kind 是 'sentence'，情境題的 kind 是 'scene'（見 sentences.js、scenes.js）。
+const isSentence = (item) => item.kind === 'sentence';
+const isScene = (item) => item.kind === 'scene';
+const isWord = (item) => !item.kind && 'zh' in item;
 const show = (item, script) => display(item, item.script || script);
-const qKey = (q) => (isWord(q.item) ? `word:${q.item.kana}` : keyOf(q.item, q.script));
+const kindOf = (item) => item.kind || (isWord(item) ? 'word' : 'kana');
+const qKey = (q) =>
+  ({
+    sentence: () => sentenceKey(q.item),
+    scene: () => sceneKey(q.item),
+    word: () => `word:${q.item.kana}`,
+    kana: () => keyOf(q.item, q.script),
+  })[kindOf(q.item)]();
+// 答完要念的：假名、單字念它本身，句子念整句，情境題念正確的說法（只有中文答案時念對方的話）
+const speakText = (q) =>
+  isScene(q.item)
+    ? q.item.answer.ja || q.item.they?.ja || ''
+    : isSentence(q.item)
+      ? q.item.ja
+      : show(q.item, q.script);
+// 選到的是不是正確答案：句子題的選項是句子本身，情境題是答案那一項；假名、單字比對假名
+const isRight = (o, q) =>
+  isScene(q.item) ? o === q.item.answer : isSentence(q.item) ? o === q.item : o.kana === q.item.kana;
 
 // 依權重抽 n 題（不重複）：不熟的假名權重高，比較容易被抽到
 function pickWeighted(qs, n) {
@@ -112,59 +138,34 @@ const seg = (field, opts, cur) => `
       .join('')}
   </div>`;
 
-// 例句裡把這個單字標出來；い形容詞常會變化（からい → からくて），找不到整個字就標字幹
-function markWord(ex, w) {
-  const word = show(w, w.script);
-  const hit = ex.includes(word) ? word : w.dict.pos === 'い形容詞' ? word.slice(0, -1) : '';
-  return hit ? ex.replace(hit, `<b>${hit}</b>`) : ex;
+const MESSAGES = {
+  kana: ['全對！太厲害了！', '很棒，快要熟練了！', '不錯喔，再多練幾次會更熟。', '慢慢來，先回五十音表看一看也很好。'],
+  word: ['全對！這些單字都記住了！', '很棒，大部分單字都認得了！', '不錯喔，再多練幾次就記得住。', '慢慢來，單字多看幾次就會記住。'],
+  sentence: ['全對！這些句子都看懂了！', '很棒，大部分句子都看得懂了！', '不錯喔，多聽幾次會越來越順。', '慢慢來，先回句子列表聽一聽也很好。'],
+  scene: ['全對！遇到這些場合都知道怎麼說了！', '很棒，大部分場合都會說了！', '不錯喔，多看幾次解說會更有把握。', '慢慢來，先回情境列表看一看、聽一聽也很好。'],
+};
+
+function resultMessage(pct, kind) {
+  const m = MESSAGES[kind];
+  return pct === 100 ? m[0] : pct >= 80 ? m[1] : pct >= 50 ? m[2] : m[3];
 }
 
-// 單字答題後，題目下方的字典解釋：意思、念法、詞性、漢字或來源、使用情境、例句。
-// 題目已經大大顯示的東西（單字本身或意思）就不再重複。
-function entryHTML(w, mode) {
-  const d = w.dict;
-  const head =
-    mode === 'pick'
-      ? `<span class="entry-word" lang="ja">${show(w, w.script)}</span><span class="entry-romaji">${w.romaji}</span>`
-      : `<span class="entry-zh">${w.zh}</span><span class="entry-romaji">${w.romaji}</span>`;
-  if (!d) return `<div class="entry"><div class="entry-head">${head}</div></div>`;
-  const kata = w.script === 'kata';
-  return `
-    <div class="entry">
-      <div class="entry-head">${head}</div>
-      <div class="entry-tags">
-        <span class="tag">${d.pos}</span>
-        ${d.origin ? `<span class="tag">${kata ? '來源' : '漢字'} <b${kata ? '' : ' lang="ja"'}>${d.origin}</b></span>` : ''}
-      </div>
-      <p class="entry-label">使用情境</p>
-      <p class="entry-note">${d.note}</p>
-      <div class="entry-label">
-        例句
-        <button type="button" class="icon-btn plain small" data-act="speak-ex" aria-label="播放例句">${icons.volume}</button>
-      </div>
-      <p class="ex-ja" lang="ja">${markWord(d.ex, w)}</p>
-      <p class="ex-zh">${d.exZh}</p>
-    </div>`;
-}
-
-function resultMessage(pct, word) {
-  if (pct === 100) return word ? '全對！這些單字都記住了！' : '全對！太厲害了！';
-  if (pct >= 80) return word ? '很棒，大部分單字都認得了！' : '很棒，快要熟練了！';
-  if (pct >= 50) return word ? '不錯喔，再多練幾次就記得住。' : '不錯喔，再多練幾次會更熟。';
-  return word ? '慢慢來，單字多看幾次就會記住。' : '慢慢來，先回五十音表看一看也很好。';
-}
-
-export function mountQuiz(root) {
+// content：'kana' 練假名（假名分頁），'word' 練單字（單字分頁），'sentence' 練例句、'scene' 練情境題（句子分頁）
+// opts.scene：從某個情境的頁面進來時，只先選那個情境
+export function mountQuiz(root, content, opts = {}) {
   const el = document.createElement('div');
   el.className = 'quiz';
   root.appendChild(el);
 
   const cfg = {
-    content: getPref('quizContent', 'kana'),
+    content,
     mode: getPref('quizMode', 'k2r'),
     wordMode: getPref('quizWordMode', 'read'),
+    sentMode: getPref('quizSentMode', 'mix'),
+    hint: getPref('sentHint', 'off'), // 句子題要不要顯示拼音
     script: getPref('quizScript', 'hira'),
-    groups: new Set(getPref('quizGroups', ['a', 'ka', 'sa'])),
+    groups: new Set(getPref('quizGroups', DEFAULT_GROUPS)),
+    scenes: new Set(opts.scene ? [opts.scene] : getPref('quizScenes', SCENES.map((x) => x.id))),
     length: getPref('quizLength', 10),
   };
   let screen = 'setup';
@@ -173,25 +174,30 @@ export function mountQuiz(root) {
   let weakShown = -1; // 設定畫面上顯示的「常答錯」數量
 
   const saveCfg = () => {
-    setPref('quizContent', cfg.content);
     setPref('quizMode', cfg.mode);
     setPref('quizWordMode', cfg.wordMode);
+    setPref('quizSentMode', cfg.sentMode);
+    setPref('sentHint', cfg.hint);
     setPref('quizScript', cfg.script);
     setPref('quizGroups', [...cfg.groups]);
+    setPref('quizScenes', [...cfg.scenes]);
     setPref('quizLength', cfg.length);
   };
 
-  const selectedItems = () => GROUPS.filter((g) => cfg.groups.has(g.id)).flatMap((g) => g.items);
-  const scriptsFor = (s) => (s === 'mix' ? ['hira', 'kata'] : [s]);
+  const selectedItems = () => itemsIn(cfg.groups);
   // 只用已選範圍裡的假名就能寫出來的單字
-  const selectedWords = () => {
-    const known = new Set(selectedItems().map((i) => i.kana));
-    const scripts = scriptsFor(cfg.script);
-    return WORDS.filter((w) => scripts.includes(w.script) && w.kinds.every((k) => known.has(k)));
-  };
+  const selectedWords = () => wordsIn(cfg.groups, scriptsFor(cfg.script));
 
   // 目前設定下所有可能的題目
   function cfgQuestions() {
+    if (cfg.content === 'scene') {
+      const list = SCENE_ITEMS.filter((q) => cfg.scenes.has(q.scene));
+      return { qs: list.map((item) => ({ item })), pool: list, mode: 'scene', ready: list.length > 0 };
+    }
+    if (cfg.content === 'sentence') {
+      const list = sentencesIn(cfg.groups);
+      return { qs: list.map((item) => ({ item })), pool: list, mode: cfg.sentMode, ready: list.length >= WORD_MIN };
+    }
     if (cfg.content === 'word') {
       const words = selectedWords();
       const qs = words.map((item) => ({ item, script: item.script }));
@@ -202,12 +208,30 @@ export function mountQuiz(root) {
     return { qs, pool: items, mode: cfg.mode, ready: items.length > 0 };
   }
 
+  // 準備一題：假名、單字是四個選項；句子題由 sentences.js 決定題型，排句子是一組詞塊
+  function prep(q, pool, mode) {
+    if (isSentence(q.item)) return prepSentence(q, pool, mode, canSpeak());
+    if (isScene(q.item)) return { ...q, options: shuffle([q.item.answer, ...q.item.wrong]) };
+    return { ...q, options: (isWord(q.item) ? makeWordOptions : makeOptions)(q, pool) };
+  }
+
+  // 題目一出現就念：聽句子一定念；情境題有對方說的話時，照自動發音的設定念
+  // （是使用者按了按鈕才走到這裡，瀏覽器會讓它播）
+  function cue() {
+    const q = screen === 'play' && game.qs[game.i];
+    if (!q) return;
+    if (q.mode === 'listen') say(q.item.ja, { force: true });
+    else if (isScene(q.item) && q.item.they) say(q.item.they.ja);
+  }
+
   function start(questions, pool, mode) {
     clearTimeout(timer);
     game = {
-      qs: shuffle(questions).map((q) => ({ ...q, options: (isWord(q.item) ? makeWordOptions : makeOptions)(q, pool) })),
+      qs: shuffle(questions).map((q) => prep(q, pool, mode)),
       pool,
-      mode, // k2r / r2k（假名）或 read / mean / pick（單字）
+      mode, // k2r / r2k（假名）、read / mean / pick（單字）或 mix / order / mean / listen（句子）
+      hint: cfg.hint === 'on',
+      ok: false,
       i: 0,
       score: 0,
       streak: 0,
@@ -220,6 +244,7 @@ export function mountQuiz(root) {
     };
     screen = 'play';
     draw();
+    cue();
   }
 
   function startFromCfg() {
@@ -230,10 +255,38 @@ export function mountQuiz(root) {
   function answer(idx) {
     if (screen !== 'play' || game.answered) return;
     const q = game.qs[game.i];
-    if (idx < 0 || idx >= q.options.length) return;
-    const ok = q.options[idx].kana === q.item.kana;
-    game.answered = true;
+    if (!q.options || idx < 0 || idx >= q.options.length) return;
     game.picked = idx;
+    settle(q, isRight(q.options[idx], q));
+  }
+
+  // 排句子：詞塊放上去、拿回來、檢查
+  function place(i) {
+    const q = game?.qs[game.i];
+    if (screen !== 'play' || game.answered || !q?.bank || q.placed.includes(i)) return;
+    if (i < 0 || i >= q.bank.length || q.placed.length >= q.item.chunks.length) return;
+    q.placed.push(i);
+    draw();
+  }
+
+  function unplace(k) {
+    const q = game?.qs[game.i];
+    if (screen !== 'play' || game.answered || !q?.bank || k < 0 || k >= q.placed.length) return;
+    q.placed.splice(k, 1);
+    draw();
+  }
+
+  function check() {
+    if (screen !== 'play' || game.answered) return;
+    const q = game.qs[game.i];
+    if (!q.bank || q.placed.length !== q.item.chunks.length) return;
+    settle(q, q.placed.map((i) => q.bank[i].t).join('|') === q.item.chunks.join('|'));
+  }
+
+  // 記下這一題答對還是答錯
+  function settle(q, ok) {
+    game.answered = true;
+    game.ok = ok;
     const ms = performance.now() - game.shownAt;
     record(qKey(q), ok, ms);
     if (ok) {
@@ -245,10 +298,10 @@ export function mountQuiz(root) {
       game.streak = 0;
       game.mistakes.push(q);
     }
-    say(show(q.item, q.script));
+    say(speakText(q));
     draw();
-    // 假名答對會自動跳下一題；單字要看解釋，等使用者自己按「下一題」
-    if (ok && !isWord(q.item)) timer = setTimeout(next, 900);
+    // 假名答對會自動跳下一題；單字、句子要看解釋，等使用者自己按「下一題」
+    if (ok && kindOf(q.item) === 'kana') timer = setTimeout(next, 900);
   }
 
   function next() {
@@ -256,10 +309,12 @@ export function mountQuiz(root) {
     if (screen !== 'play' || !game.answered) return;
     game.i++;
     game.answered = false;
+    game.ok = false;
     game.picked = -1;
     game.shownAt = performance.now();
     if (game.i >= game.qs.length) screen = 'result';
     draw();
+    cue();
   }
 
   // ---------- 畫面 ----------
@@ -267,7 +322,9 @@ export function mountQuiz(root) {
   function drawSetup() {
     const items = selectedItems();
     const wordMode = cfg.content === 'word';
-    const noun = wordMode ? '單字' : '假名';
+    const sentMode = cfg.content === 'sentence';
+    const sceneMode = cfg.content === 'scene';
+    const noun = NOUN[cfg.content];
     const { qs, ready } = cfgQuestions();
     const words = wordMode ? qs.length : 0;
     const total = qs.length;
@@ -278,7 +335,13 @@ export function mountQuiz(root) {
     lengths.all = `全部 ${total} 題`;
     const lengthOn = cfg.length !== 'all' && cfg.length < total ? cfg.length : 'all';
     weakShown = weak;
-    const emptyHint = wordMode ? '這個範圍能組成的單字太少，多選幾行吧' : '先選至少一個範圍喔';
+    const emptyHint = wordMode
+      ? '這個範圍能組成的單字太少，多選幾行吧'
+      : sentMode
+        ? '這個範圍的例句太少，多選幾行吧'
+        : sceneMode
+          ? '先選至少一個情境喔'
+          : '先選至少一個範圍喔';
 
     const kata = cfg.script === 'kata';
     const conv = (k) => (kata ? toKatakana(k) : k);
@@ -304,11 +367,49 @@ export function mountQuiz(root) {
     };
     const count = lengthOn === 'all' ? total : lengthOn;
 
+    const back = {
+      kana: { href: '#kana', text: '回到五十音表' },
+      word: { href: '#words', text: '回到單字本' },
+      sentence: { href: '#sentences', text: '回到句子列表' },
+      scene: opts.scene
+        ? { href: `#scenes/${opts.scene}`, text: `回到${SCENE_BY_ID[opts.scene].name}` }
+        : { href: '#sentences', text: '回到句子' },
+    }[cfg.content];
+    // 情境題不用選假名的範圍，改成選要練哪些情境
+    const scenePick = (x) => `<button type="button" class="row-pick" data-scene="${x.id}" aria-pressed="${cfg.scenes.has(x.id)}">
+        <span class="rp-scene">${x.name}</span>
+        <span class="rp-name">${x.items.length} 題</span>
+      </button>`;
+    const weakNote = weak
+      ? `<p class="range-note weak-note"><i class="dot weak"></i>其中 ${weak} ${sceneMode ? '題' : `個${noun}`}常答錯，測驗時會優先出現。</p>`
+      : '';
+    const rangeHTML = sceneMode
+      ? `<section class="sheet setup">
+          <div class="range-head">
+            <h2 class="sheet-title">要練哪些情境？</h2>
+            <span class="muted">已選 ${cfg.scenes.size} 個情境・${total} 題</span>
+          </div>
+          <div class="rows">${SCENES.map(scenePick).join('')}</div>
+          <div class="quick">
+            <button type="button" class="link-btn" data-quick="scenes-all">全選</button>
+            <button type="button" class="link-btn" data-quick="scenes-none">清除</button>
+          </div>
+          ${weakNote}
+        </section>`
+      : '';
+    const typeSeg = wordMode
+      ? seg('wordMode', WORD_MODES, cfg.wordMode)
+      : sentMode
+        ? seg('sentMode', SENT_MODES, cfg.sentMode)
+        : seg('mode', MODES, cfg.mode);
+
     el.innerHTML = `
-      <section class="sheet setup">
+      <a class="link-btn back-link" href="${back.href}">${icons.back}${back.text}</a>
+      ${rangeHTML}
+      <section class="sheet setup"${sceneMode ? ' hidden' : ''}>
         <div class="range-head">
           <h2 class="sheet-title">要練哪幾行？</h2>
-          <span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : ''}</span>
+          <span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : sentMode ? `・${total} 句` : ''}</span>
         </div>
         <div class="rows">${GROUPS.map(rowPick).join('')}</div>
         <div class="quick">
@@ -317,28 +418,39 @@ export function mountQuiz(root) {
           <button type="button" class="link-btn" data-quick="none">清除</button>
         </div>
         ${wordMode ? '<p class="range-note">只會出現用已選的假名就能寫出來的單字。</p>' : ''}
-        ${weak ? `<p class="range-note weak-note"><i class="dot weak"></i>其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
+        ${sentMode ? '<p class="range-note">只會出現單字本裡那些單字的例句。句子裡可能有還沒學過的假名，可以打開拼音提示。</p>' : ''}
+        ${sceneMode ? '' : weakNote}
       </section>
       <section class="sheet fields">
-        <div class="field">
-          <p class="field-label">內容</p>
-          ${seg('content', CONTENTS, cfg.content)}
-        </div>
-        <div class="field">
+        <div class="field"${sceneMode ? ' hidden' : ''}>
           <p class="field-label">題型</p>
-          ${wordMode ? seg('wordMode', WORD_MODES, cfg.wordMode) : seg('mode', MODES, cfg.mode)}
+          ${typeSeg}
         </div>
-        <div class="field">
-          <p class="field-label">文字</p>
-          ${seg('script', SCRIPTS, cfg.script)}
-        </div>
+        ${
+          sentMode || sceneMode
+            ? `<div class="field">
+                <p class="field-label">拼音</p>
+                ${seg('hint', HINTS, cfg.hint)}
+              </div>`
+            : `<div class="field">
+                <p class="field-label">文字</p>
+                ${seg('script', SCRIPTS, cfg.script)}
+              </div>`
+        }
         <div class="field">
           <p class="field-label">題數</p>
           ${seg('length', lengths, lengthOn)}
         </div>
+        ${sentMode && !canSpeak() ? '<p class="range-note">這台裝置沒有日文語音，所以不會出「聽句子」。</p>' : ''}
       </section>
       <div class="sheet start-bar">
-        <p class="start-sum">${ready ? `<b>${count} 題</b>${wordMode ? `${words} 個單字` : `${items.length} 個假名`}裡出題` : emptyHint}</p>
+        <p class="start-sum">${
+          ready
+            ? `<b>${count} 題</b>${
+                wordMode ? `${words} 個單字` : sentMode ? `${total} 句` : sceneMode ? `${total} 題情境題` : `${items.length} 個假名`
+              }裡出題`
+            : emptyHint
+        }</p>
         <button type="button" class="btn primary" data-act="start" ${ready ? '' : 'disabled'}>
           開始測驗 ${icons.arrow}
         </button>
@@ -346,12 +458,25 @@ export function mountQuiz(root) {
   }
 
   function feedbackHTML(q, ok) {
-    const picked = q.options[game.picked];
+    const picked = q.options?.[game.picked];
     const last = game.i + 1 >= game.qs.length;
     const word = isWord(q.item);
+    const manual = kindOf(q.item) !== 'kana'; // 不會自動跳題
     const kana = (i) => `<b lang="ja">${show(i, q.script)}</b>`;
     let text;
     if (ok) text = `<div class="fb-text ok">${icons.check}<span>答對了！</span></div>`;
+    // 情境題答完每個選項都會寫出意思，這裡只說選到的是什麼
+    else if (isScene(q.item))
+      text = `<div class="fb-text bad">
+          <span>答錯了</span>
+          <small>你選的${picked.ja ? '意思' : ''}是「${picked.zh}」</small>
+        </div>`;
+    // 句子題的正確答案寫在題目區塊裡（排句子）或是圈起來的選項（選意思、聽句子）
+    else if (isSentence(q.item))
+      text = `<div class="fb-text bad">
+          <span>${q.mode === 'order' ? '順序不太對' : '答錯了'}</span>
+          <small>${q.mode === 'order' ? '正確的句子寫在上面' : `你選的是「${picked.zh}」`}</small>
+        </div>`;
     // 單字的正確答案已經寫在題目下方的解釋裡，這裡只說選到的是什麼
     else if (word)
       text = `<div class="fb-text bad">
@@ -364,14 +489,45 @@ export function mountQuiz(root) {
           <small>你選的 ${kana(picked)} 念 ${picked.romaji}</small>
         </div>`;
     // 假名答對會自動跳題，按鈕淡一點；其他情況都要自己按，用主要按鈕
-    return `${text}<button type="button" class="btn ${ok && !word ? 'ghost' : 'primary'}" data-act="next">${
+    return `${text}<button type="button" class="btn ${ok && !manual ? 'ghost' : 'primary'}" data-act="next">${
       last ? '看結果' : '下一題'
     } ${icons.arrow}</button>`;
   }
 
+  function playTopHTML() {
+    const n = game.qs.length;
+    const done = game.i + (game.answered ? 1 : 0);
+    return `<div class="play-top">
+      <button type="button" class="icon-btn" data-act="quit" aria-label="結束測驗">${icons.close}</button>
+      <div class="progress" role="progressbar" aria-label="進度" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${done}">
+        <div class="bar" style="transform:scaleX(${done / n})"></div>
+      </div>
+      <span class="counter">${game.i + 1} / ${n}</span>
+    </div>`;
+  }
+
+  // 四個選項：答完後答對的那格圈起來，選錯的那格打叉，其他的變淡
+  function optionsHTML(q, label, cls, ja) {
+    const correctIdx = q.options.findIndex((o) => isRight(o, q));
+    return `<div class="options${cls}">
+      ${q.options
+        .map((o, idx) => {
+          let state = '';
+          if (game.answered) state = idx === correctIdx ? 'correct' : idx === game.picked ? 'wrong' : 'dim';
+          return `<button type="button" class="opt ${state}" data-opt="${idx}" ${game.answered ? 'disabled' : ''}>
+            <span class="num" aria-hidden="true">${idx + 1}</span>
+            <span class="opt-label"${ja ? ' lang="ja"' : ''}>${label(o)}</span>
+            ${state === 'wrong' ? STRIKE : state === 'correct' ? RING : ''}
+          </button>`;
+        })
+        .join('')}
+    </div>`;
+  }
+
   function drawPlay() {
     const q = game.qs[game.i];
-    const n = game.qs.length;
+    if (isSentence(q.item)) return drawSentence(q);
+    if (isScene(q.item)) return drawScene(q);
     const mode = game.mode;
     const shown = show(q.item, q.script);
     // 每種題型：題目上面的說明、題目的樣式和內容、選項顯示什麼
@@ -384,21 +540,13 @@ export function mountQuiz(root) {
     }[mode];
     const showsKana = view.cls.startsWith('kana'); // 題目本身就是假名，可以先聽發音
     const chars = [...shown]; // 題目的假名一個字寫一格
-    const correctIdx = q.options.findIndex((o) => o.kana === q.item.kana);
-    const ok = game.answered && game.picked === correctIdx;
-    const done = game.i + (game.answered ? 1 : 0);
+    const ok = game.answered && game.ok;
     const word = isWord(q.item);
     const explain = word && game.answered; // 單字答完：題目下方顯示字典解釋
 
     el.innerHTML = `
       <div class="play">
-        <div class="play-top">
-          <button type="button" class="icon-btn" data-act="quit" aria-label="結束測驗">${icons.close}</button>
-          <div class="progress" role="progressbar" aria-label="進度" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${done}">
-            <div class="bar" style="transform:scaleX(${done / n})"></div>
-          </div>
-          <span class="counter">${game.i + 1} / ${n}</span>
-        </div>
+        ${playTopHTML()}
 
         <section class="sheet prompt${explain ? ' answered' : ''}">
           <p class="prompt-label">${view.label}</p>
@@ -411,25 +559,12 @@ export function mountQuiz(root) {
               : ''
           }
           <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : explain ? '' : '&nbsp;'}</p>
-          ${explain ? entryHTML(q.item, mode) : ''}
+          ${explain ? entryHTML(q.item, mode === 'pick' ? 'word' : 'zh') : ''}
         </section>
 
         <div class="dock">
-        <div class="options${word ? ' words' : ''}">
-          ${q.options
-            .map((o, idx) => {
-              let state = '';
-              if (game.answered) state = idx === correctIdx ? 'correct' : idx === game.picked ? 'wrong' : 'dim';
-              return `<button type="button" class="opt ${state}" data-opt="${idx}" ${game.answered ? 'disabled' : ''}>
-                <span class="num" aria-hidden="true">${idx + 1}</span>
-                <span class="opt-label"${view.ja ? ' lang="ja"' : ''}>${view.opt(o)}</span>
-                ${state === 'wrong' ? STRIKE : state === 'correct' ? RING : ''}
-              </button>`;
-            })
-            .join('')}
-        </div>
-
-        <div class="feedback" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
+          ${optionsHTML(q, view.opt, word ? ' words' : '', view.ja)}
+          <div class="feedback" aria-live="polite">${game.answered ? feedbackHTML(q, ok) : ''}</div>
         </div>
       </div>`;
 
@@ -437,15 +572,167 @@ export function mountQuiz(root) {
     if (game.answered && (!ok || word)) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
   }
 
+  // 情境題：場合（中文）、對方說的話（接話題才有），選出該說的話。
+  // 答完每個選項下面都會寫出意思，知道錯的那些是什麼場合用的；還沒答時先佔好位置，選項才不會長高。
+  function drawScene(q) {
+    const it = q.item;
+    const answered = game.answered;
+    const ok = answered && game.ok;
+    const hint = game.hint;
+    const they = it.they
+      ? `<div class="sc-they">
+          <div class="sc-they-text">
+            <p class="s-ja" lang="ja">${it.they.ja}</p>
+            ${hint || answered ? `<p class="s-romaji">${it.they.romaji}</p>` : ''}
+            ${answered ? `<p class="s-zh">${it.they.zh}</p>` : ''}
+          </div>
+          <button type="button" class="icon-btn plain" data-act="speak-they" aria-label="播放對方說的話">${icons.volume}</button>
+        </div>`
+      : '';
+    const label = (o) =>
+      o.ja
+        ? `<span class="sc-opt-ja" lang="ja">${o.ja}</span>${hint ? `<small>${o.romaji}</small>` : ''}<small${
+            answered ? '' : ' class="keep-space" aria-hidden="true"'
+          }>${o.zh}</small>`
+        : o.zh;
+
+    el.innerHTML = `
+      <div class="play">
+        ${playTopHTML()}
+        <section class="sheet prompt s-prompt sc-prompt${answered ? ' answered' : ''}">
+          <p class="prompt-label">情境題・${SCENE_BY_ID[it.scene].name}</p>
+          ${
+            answered && it.answer.ja
+              ? `<button type="button" class="icon-btn speak" data-act="speak" aria-label="播放正確的說法">${icons.volume}</button>`
+              : ''
+          }
+          <div class="s-main">
+            <p class="sc-ask">${it.ask}</p>
+            ${they}
+          </div>
+          ${answered ? `<div class="sc-why"><p class="entry-label">為什麼</p><p class="sc-note">${it.note}</p></div>` : ''}
+          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : '&nbsp;'}</p>
+        </section>
+        <div class="dock">
+          ${optionsHTML(q, label, ' sentences scene', false)}
+          <div class="feedback" aria-live="polite">${answered ? feedbackHTML(q, ok) : ''}</div>
+        </div>
+      </div>`;
+
+    if (answered) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
+  }
+
+  // 句子題：排句子、選意思、聽句子
+  function drawSentence(q) {
+    const s = q.item;
+    const answered = game.answered;
+    const ok = answered && game.ok;
+    const hint = game.hint;
+    const label = {
+      order: '把下面的詞，排成這句話的日文',
+      mean: '這句話是什麼意思？',
+      listen: '聽聽看，這句話是什麼意思？',
+    }[q.mode];
+    const ja = `<p class="s-ja big" lang="ja">${answered ? markWord(s.ja, s.word) : s.ja}</p>`;
+    const romaji = `<p class="s-romaji">${s.romaji}</p>`;
+    const chip = (b, attr) =>
+      `<button type="button" class="chip" ${attr} lang="ja" ${answered ? 'disabled' : ''}><span>${b.t}</span>${
+        hint ? `<small>${b.r}</small>` : ''
+      }</button>`;
+
+    let main;
+    if (q.mode === 'mean') main = ja + (hint || answered ? romaji : '');
+    else if (q.mode === 'listen')
+      main = answered
+        ? ja + romaji
+        : `<button type="button" class="listen-btn" data-act="speak">${icons.volume}<span>再聽一次</span></button>`;
+    else {
+      const left = s.chunks.length - q.placed.length;
+      main = `<p class="s-zh big">${s.zh}</p>
+        <div class="s-line${answered ? (ok ? ' correct' : ' wrong') : ''}" aria-label="你排的句子">
+          ${q.placed.map((bi, k) => chip(q.bank[bi], `data-placed="${k}"`)).join('')}
+          ${'<span class="slot" aria-hidden="true"></span>'.repeat(Math.max(0, left))}
+          ${answered ? (ok ? RING : STRIKE) : ''}
+        </div>
+        ${answered && !ok ? `<p class="s-answer">正確的句子</p>${ja}` : ''}
+        ${answered ? romaji : '<p class="s-tip">依順序點下面的詞；點上面的詞可以拿回去。</p>'}`;
+    }
+
+    let dock;
+    if (q.mode === 'order') {
+      const full = q.placed.length === s.chunks.length;
+      dock = `
+        <div class="bank">
+          ${q.bank
+            .map((b, i) =>
+              q.placed.includes(i)
+                ? `<span class="chip used" aria-hidden="true"><span>${b.t}</span>${hint ? `<small>${b.r}</small>` : ''}</span>`
+                : chip(b, `data-chip="${i}"`),
+            )
+            .join('')}
+        </div>
+        ${
+          answered
+            ? `<div class="feedback" aria-live="polite">${feedbackHTML(q, ok)}</div>`
+            : `<div class="order-actions">
+                <button type="button" class="btn" data-act="clear" ${q.placed.length ? '' : 'disabled'}>清除</button>
+                <button type="button" class="btn primary" data-act="check" ${full ? '' : 'disabled'}>檢查答案</button>
+              </div>`
+        }`;
+    } else {
+      dock = `
+        ${optionsHTML(q, (o) => o.zh, ' sentences', false)}
+        <div class="feedback" aria-live="polite">${answered ? feedbackHTML(q, ok) : ''}</div>`;
+    }
+
+    el.innerHTML = `
+      <div class="play">
+        ${playTopHTML()}
+        <section class="sheet prompt s-prompt${answered ? ' answered' : ''}">
+          <p class="prompt-label">${label}</p>
+          ${
+            q.mode === 'mean' || answered
+              ? `<button type="button" class="icon-btn speak" data-act="speak" aria-label="播放發音">${icons.volume}</button>`
+              : ''
+          }
+          <div class="s-main">${main}</div>
+          ${
+            answered
+              ? `<p class="s-from">出自單字 <b lang="ja">${show(s.word, s.word.script)}</b> ${s.word.romaji}・${s.word.zh}</p>`
+              : ''
+          }
+          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : '&nbsp;'}</p>
+        </section>
+        <div class="dock">${dock}</div>
+      </div>`;
+
+    if (answered) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
+  }
+
   function drawResult() {
     const n = game.qs.length;
     const pct = Math.round((game.score / n) * 100);
-    const word = isWord(game.qs[0].item);
+    const kind = kindOf(game.qs[0].item);
+    const word = kind === 'word';
     const misses = uniqBy(game.mistakes, qKey);
     const missed = new Set(misses.map(qKey));
     const slows = uniqBy(game.slow, qKey).filter((q) => !missed.has(qKey(q)));
-    const noun = word ? '單字' : '假名';
-    const kanaList = (qs) => `<ul class="miss${word ? ' words' : ''}">
+    const noun = NOUN[kind];
+    // 句子一列一句：日文和中文
+    const sentList = (qs) => `<ul class="miss-sent">
+      ${qs.map((q) => `<li><span class="s-ja" lang="ja">${q.item.ja}</span><span class="s-zh">${q.item.zh}</span></li>`).join('')}
+    </ul>`;
+    // 情境題一列一題：場合和該說的話
+    const sceneList = (qs) => `<ul class="miss-sent">
+      ${qs
+        .map(
+          (q) => `<li><span class="sc-ask">${q.item.ask}</span>${
+            q.item.answer.ja ? `<span class="s-ja" lang="ja">${q.item.answer.ja}</span>` : ''
+          }<span class="s-zh">${q.item.answer.zh}</span></li>`,
+        )
+        .join('')}
+    </ul>`;
+    const kanaList = (qs) => kind === 'scene' ? sceneList(qs) : kind === 'sentence' ? sentList(qs) : `<ul class="miss${word ? ' words' : ''}">
       ${qs
         .map(
           (q) => `<li><span class="k" lang="ja">${show(q.item, q.script)}</span><span class="r">${q.item.romaji}</span>${
@@ -458,7 +745,7 @@ export function mountQuiz(root) {
       <section class="sheet result">
         <h2 class="sheet-title">測驗完成</h2>
         <p class="score" aria-label="答對 ${game.score} 題，共 ${n} 題">${game.score}<small> / ${n}</small></p>
-        <p class="msg">${resultMessage(pct, word)}</p>
+        <p class="msg">${resultMessage(pct, kind)}</p>
         ${misses.length ? `<h3><i class="dot weak"></i>答錯的${noun}</h3>${kanaList(misses)}` : ''}
         ${slows.length ? `<h3><i class="dot learning"></i>答對但想比較久的${noun}</h3>${kanaList(slows)}<p class="result-note">多練幾次、答得更快就算熟練了。</p>` : ''}
         <div class="actions">
@@ -501,6 +788,14 @@ export function mountQuiz(root) {
       if (cfg.groups.has(id)) cfg.groups.delete(id);
       else cfg.groups.add(id);
       refocus = `[data-group="${id}"]`;
+    } else if (t.dataset.scene) {
+      const id = t.dataset.scene;
+      if (cfg.scenes.has(id)) cfg.scenes.delete(id);
+      else cfg.scenes.add(id);
+      refocus = `[data-scene="${id}"]`;
+    } else if (t.dataset.quick?.startsWith('scenes-')) {
+      cfg.scenes = new Set(t.dataset.quick === 'scenes-all' ? SCENES.map((x) => x.id) : []);
+      refocus = `[data-quick="${t.dataset.quick}"]`;
     } else if (t.dataset.quick) {
       const q = t.dataset.quick;
       cfg.groups = new Set(
@@ -510,16 +805,32 @@ export function mountQuiz(root) {
     } else if ('opt' in t.dataset) {
       answer(Number(t.dataset.opt));
       return;
+    } else if ('chip' in t.dataset || 'placed' in t.dataset) {
+      if ('chip' in t.dataset) place(Number(t.dataset.chip));
+      else unplace(Number(t.dataset.placed));
+      // 用鍵盤操作時，焦點放到下一個可以點的詞，排完了就放到「檢查答案」
+      if (fromKeyboard)
+        (el.querySelector('[data-act="check"]:not(:disabled)') || el.querySelector('[data-chip]'))?.focus({ preventScroll: true });
+      return;
     } else {
       const q = game?.qs[game.i];
       switch (t.dataset.act) {
         case 'start': return startFromCfg();
         case 'next': return next();
-        case 'speak': return q && say(show(q.item, q.script), { force: true });
+        case 'speak': return q && say(speakText(q), { force: true });
+        case 'speak-they': return q?.item.they && say(q.item.they.ja, { force: true });
+        case 'check': return check();
+        case 'clear':
+          if (q?.bank && !game.answered) {
+            q.placed = [];
+            draw();
+          }
+          return;
         case 'speak-ex': return q?.item.dict && say(q.item.dict.ex, { force: true });
         case 'again': return startFromCfg();
         case 'retry-miss': {
-          const qs = uniqBy(game.mistakes, qKey).map(({ item, script }) => ({ item, script }));
+          // 句子題沿用原本的題型
+          const qs = uniqBy(game.mistakes, qKey).map(({ item, script, mode }) => ({ item, script, mode }));
           return start(qs, game.pool, game.mode);
         }
         case 'quit':
@@ -541,6 +852,18 @@ export function mountQuiz(root) {
   // 鍵盤：1–4 選答案，Enter / 空白鍵 下一題
   const onKey = (e) => {
     if (screen !== 'play' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const q = game.qs[game.i];
+    // 排句子：Enter 檢查答案，Backspace 拿回最後一個詞
+    if (!game.answered && q.bank) {
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        unplace(q.placed.length - 1);
+      } else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
+        e.preventDefault();
+        check();
+      }
+      return;
+    }
     if (!game.answered && /^[1-4]$/.test(e.key)) {
       e.preventDefault();
       answer(Number(e.key) - 1);

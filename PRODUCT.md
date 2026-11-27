@@ -22,7 +22,10 @@ Practice adapts to the learner. The quiz records right answers, wrong answers an
 
 ## Operating Context
 
-- Two views: 五十音表 (chart) and 測驗 (quiz: setup, play, result).
+- Three tabs ordered as learning steps: 假名, 單字, 句子. Each tab first shows familiarity (the kana chart, the word book, or the situational scene cards and the list of example sentences, all with mastery marks) and keeps a practice bar at the bottom that leads to that tab's quiz: setup, play, result.
+- The range of kana rows to practise is shared by all tabs; the word book and word quiz only use words spelled with those kana, and the sentence tab only uses those words' example sentences.
+- Sentence questions come in three kinds: put the shuffled chunks in order (two extra chunks mixed in), read a sentence and pick its meaning, or hear it and pick its meaning.
+- Situational questions cover eight scenes (greetings, self-introduction, restaurant, convenience store, asking the way at a station, shopping, hotel, feeling ill). Each asks what to say in a situation, or how to reply to what someone says; wrong options are mostly phrases that mean something reasonable but suit a different situation, and every option's meaning and an explanation appear after answering. The situational tab bar offers both practices, 情境題 and 例句, as equal buttons.
 - Tapping a kana plays its sound through the browser's Japanese voice.
 - After a word answer, a dictionary-style entry explains the word with an example sentence.
 - Published two ways: GitHub Pages, and a single-file page on claude.ai where practice records sync to the viewer's account.
@@ -43,7 +46,7 @@ Practice adapts to the learner. The quiz records right answers, wrong answers an
 
 ## Evidence on Hand
 
-- 104 kana with romaji in `src/kana.js`; about 300 words with meanings, notes and example sentences in `src/words.js` and `src/dict.js`.
+- 104 kana with romaji in `src/kana.js`; about 300 words with meanings, notes and example sentences in `src/words.js` and `src/dict.js`. The 293 example sentences are written in kana with a space between chunks, which the sentence quiz relies on. The 56 situational questions in `src/scenes.js` were written for this app and have not yet been checked by a native speaker.
 - No user research with real learners yet. A usability test outline exists but has not been run.
 
 ## Product Principles

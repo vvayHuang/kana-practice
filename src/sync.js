@@ -5,12 +5,14 @@
 // 每台裝置只寫自己那一份，讀的時候把其他裝置的加起來。
 // 每份的內容：{ stats 答題次數, label 裝置名稱（例如「iPhone · Safari」）, lastAt 最後答題時間 }
 // 舊版存的紀錄只有 stats，沒有 label 和 lastAt。
+// 幾份舊紀錄合併成一份之後，原本那幾份會換成 { stats: {}, mergedInto, merged 合併前的次數 }。
+// 那台裝置如果還在用，下次連上時會從自己的次數扣掉 merged，再照常存回去，才不會重複計算。
 //
 // 「裝置 id」存在瀏覽器裡。換瀏覽器、用無痕視窗、清掉網站資料，或瀏覽器自己清掉時，
 // 下次答題就會變成新的一份，所以份數常常比實際的裝置多。畫面上因此不顯示「幾台」，
 // 只在點開雲按鈕時列出每一份是什麼裝置、最後什麼時候練習。
 
-import { getDeviceId, getOwnLastAt, getOwnStats, onRecord, setOtherDevices } from './store.js';
+import { getDeviceId, getOwnLastAt, getOwnStats, onRecord, setOtherDevices, subtractOwnStats } from './store.js';
 
 // status — off：不支援同步／connecting：連線中／synced：已同步／offline：暫時連不上／local：沒登入或沒權限
 // others — 雲端上其他裝置的紀錄：{ label, lastAt, answers }，有讀到雲端資料後 loaded 才會是 true
@@ -121,6 +123,8 @@ export async function initSync() {
   let writing = false;
   let disabled = false;
   let timer = null;
+  // 讀到雲端上這台的紀錄之前先不寫，才知道它有沒有被合併過
+  let confirmed = false;
 
   const schedule = (ms = 1500) => {
     clearTimeout(timer);
@@ -129,7 +133,7 @@ export async function initSync() {
 
   async function flush() {
     clearTimeout(timer);
-    if (!dirty || writing || disabled) return;
+    if (!dirty || writing || disabled || !confirmed) return;
     writing = true;
     dirty = false;
     let retryIn = 0;
@@ -165,7 +169,6 @@ export async function initSync() {
   });
 
   // ---------- 讀取：即時收到其他裝置的紀錄 ----------
-  let confirmed = false;
   const loadingTimer = setTimeout(() => {
     if (!confirmed && !disabled) setStatus('offline');
   }, 10000);
@@ -200,10 +203,13 @@ export async function initSync() {
       if (!confirmed) {
         confirmed = true;
         clearTimeout(loadingTimer);
+        // 這台的紀錄已經合併到別份：扣掉合併過的次數
+        if (mineInCloud?.mergedInto) subtractOwnStats(mineInCloud.merged);
         // 第一次連上：這台裝置的紀錄（離線時的紀錄，或舊版存的沒有裝置名稱）跟雲端不一樣的話，補傳一次
         const local = myDoc();
         const hasLocal = Object.keys(local.stats).length > 0;
-        if ((hasLocal || mineInCloud) && !sameDoc(mineInCloud, local)) markDirty();
+        if (mineInCloud?.mergedInto || ((hasLocal || mineInCloud) && !sameDoc(mineInCloud, local))) markDirty();
+        else if (dirty) schedule();
       }
       if (!disabled) setStatus('synced');
     },

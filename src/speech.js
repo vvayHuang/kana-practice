@@ -43,6 +43,9 @@ function warnOnce(msg) {
   toast(msg);
 }
 
+// 能不能念日文。語音清單常常晚一點才載入，還不知道的時候先當作可以
+export const canSpeak = () => !!synth && (!loaded || !!jaVoice);
+
 // force：使用者按了喇叭按鈕，就算關掉自動發音也要念
 export function say(text, { force = false } = {}) {
   if (!force && !getPref('sound', true)) return;

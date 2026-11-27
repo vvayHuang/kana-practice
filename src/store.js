@@ -86,9 +86,9 @@ const TIME_WINDOW = 5; // 作答時間只看最近大約 5 次，變快之後很
 const TIME_CAP = 10000;
 const TIME_IGNORE = 30000;
 const SLOW_MS = 3000; // 平均超過這個時間就算「答對但還不熟」
-// 單字的紀錄用 word: 開頭；單字比較長，時間放寬一倍
-const isWordKey = (key) => key.startsWith('word:');
-export const slowLimit = (key) => (isWordKey(key) ? SLOW_MS * 2 : SLOW_MS);
+// 單字的紀錄用 word: 開頭，句子用 sent: 開頭，情境題用 scene: 開頭；要讀得越多，時間放得越寬
+export const slowLimit = (key) =>
+  key.startsWith('sent:') || key.startsWith('scene:') ? SLOW_MS * 4 : key.startsWith('word:') ? SLOW_MS * 2 : SLOW_MS;
 
 export function record(key, ok, ms) {
   change(() => {
@@ -113,8 +113,8 @@ export function record(key, ok, ms) {
 
 export const getStat = (key) => total[key] || null;
 
-// 有沒有任何練習紀錄（含其他裝置同步來的）
-export const hasStats = () => Object.keys(total).length > 0;
+// 有沒有練習紀錄（含其他裝置同步來的）；prefix 給了就只看那一種，例如 'word:' 只看單字
+export const hasStats = (prefix = '') => Object.keys(total).some((k) => k.startsWith(prefix));
 
 // 最近答對時平均花幾毫秒，沒有紀錄回傳 null
 export function avgTime(key) {
@@ -174,6 +174,30 @@ export function getOwnLastAt() {
 export function onRecord(fn) {
   recordListeners.add(fn);
   return () => recordListeners.delete(fn);
+}
+
+// 這台裝置的雲端紀錄被合併到別份之後，把已經算進去的次數扣掉，避免同一批答題算兩次。
+// 合併之後才答的題目會留下來。
+export function subtractOwnStats(done) {
+  change(() => {
+    for (const [key, d] of Object.entries(done || {})) {
+      const s = state.stats[key];
+      if (!s) continue;
+      s.c = Math.max(0, s.c - (Number(d?.c) || 0));
+      s.w = Math.max(0, s.w - (Number(d?.w) || 0));
+      const n = (Number(s.n) || 0) - (Number(d?.n) || 0);
+      if (n > 0) {
+        s.n = n;
+        s.t = Math.max(0, (Number(s.t) || 0) - (Number(d?.t) || 0));
+      } else {
+        delete s.n;
+        delete s.t;
+      }
+      if (s.c + s.w === 0) delete state.stats[key];
+    }
+  });
+  recompute();
+  remoteListeners.forEach((fn) => fn());
 }
 
 // 傳入其他裝置的紀錄（每台一份），有變動才通知畫面
