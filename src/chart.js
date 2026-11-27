@@ -1,5 +1,6 @@
-import { SECTIONS, BY_KANA, NOTES, toKatakana, keyOf } from './kana.js';
+import { SECTIONS, ALL, BY_KANA, NOTES, toKatakana, display, keyOf } from './kana.js';
 import { getPref, setPref, mastery, getStat, hasStats, avgTime, isSlow, onStatsChange } from './store.js';
+import { savedGroups, itemsIn, scriptsFor, rangeLabel } from './range.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
@@ -7,6 +8,10 @@ export function renderChart(root) {
   const el = document.createElement('div');
   el.className = 'chart';
   root.appendChild(el);
+  // 開始練習的紙條放在表格外面，寬螢幕分兩欄時也能貼在畫面底部
+  const bar = document.createElement('div');
+  bar.className = 'sheet start-bar tab-bar';
+  root.appendChild(bar);
 
   let script = getPref('chartScript', 'hira');
   let selected = null;
@@ -74,6 +79,35 @@ export function renderChart(root) {
     </div>`;
   }
 
+  // 底部的紙條：說明會從哪些假名出題，常答錯的會先出
+  function paintBar() {
+    const groups = savedGroups();
+    const items = itemsIn(groups);
+    const scripts = scriptsFor(getPref('quizScript', 'hira'));
+    const weak = [
+      ...new Set(items.flatMap((i) => scripts.filter((s) => mastery(keyOf(i, s)) === 'weak').map((s) => display(i, s)))),
+    ];
+    const sum = !items.length
+      ? '<b>還沒選範圍</b>下一步選要練哪幾行'
+      : weak.length
+        ? `<b>${items.length} 個假名</b>常答錯的 <span lang="ja">${weak.slice(0, 3).join('、')}</span>${weak.length > 3 ? ' 等' : ''} 會先出`
+        : `<b>${items.length} 個假名</b>範圍：${rangeLabel(groups)}`;
+    bar.innerHTML = `
+      <p class="start-sum">${sum}</p>
+      <a class="btn primary" href="#kana/quiz">練習假名 ${icons.arrow}</a>`;
+  }
+
+  // 熟練了一些假名、還沒練過單字時，提醒可以往下一步走
+  function nextStepHTML() {
+    if (hasStats('word:')) return '';
+    const good = ALL.reduce((n, i) => n + ['hira', 'kata'].filter((s) => mastery(keyOf(i, s)) === 'good').length, 0);
+    if (good < 10) return '';
+    return `<section class="sheet start-card next-step">
+      <p>已經熟練 ${good} 個假名<br />可以開始練單字了</p>
+      <a class="link-btn" href="#words">去單字 ${icons.arrow}</a>
+    </section>`;
+  }
+
   function draw() {
     const showRomaji = getPref('showRomaji', true);
     el.classList.toggle('hide-romaji', !showRomaji);
@@ -84,11 +118,11 @@ export function renderChart(root) {
           : `<section class="sheet start-card">
               <div>
                 <h2 class="sheet-title">第一次來？從這裡開始</h2>
-                <p>先點下面的假名聽發音，認得幾個之後就去做測驗。測驗會記住你不熟的假名，讓它們多出現幾次。</p>
+                <p>先點下面的假名聽發音。認得幾個之後，按最下面的「練習假名」做小測驗；測驗會記住你不熟的假名，讓它們多出現幾次。</p>
               </div>
-              <a class="btn primary" href="#quiz">去做測驗</a>
             </section>`
       }
+      ${nextStepHTML()}
       <section class="sheet main">
       <div class="toolbar">
         <div class="seg" role="group" aria-label="切換文字">
@@ -109,6 +143,7 @@ export function renderChart(root) {
         .map((sec) => `<section class="sheet">${sectionHTML(sec)}</section>`)
         .join('')}
       <div class="detail" ${selected ? '' : 'hidden'}>${selected ? detailHTML(selected) : ''}</div>`;
+    paintBar();
   }
 
   function select(kana) {
@@ -161,7 +196,8 @@ export function renderChart(root) {
       b.classList.add(`m-${mastery(keyOf(BY_KANA[b.dataset.kana], script))}`);
       b.setAttribute('aria-label', cellLabel(BY_KANA[b.dataset.kana]));
     });
-    if (hasStats()) el.querySelector('.start-card')?.remove();
+    if (hasStats()) el.querySelector('.start-card:not(.next-step)')?.remove();
+    paintBar();
     const stat = el.querySelector('.d-stat');
     if (selected && stat) stat.textContent = statText(selected);
   });

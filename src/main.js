@@ -1,6 +1,7 @@
 import './style.css';
 import { renderChart } from './chart.js';
 import { mountQuiz } from './quiz.js';
+import { renderWordbook } from './wordbook.js';
 import { initSpeech } from './speech.js';
 import { getPref, setPref } from './store.js';
 import { initSync } from './sync.js';
@@ -14,8 +15,8 @@ app.innerHTML = `
       <h1 class="vh" lang="ja">かな練習帳</h1>
       <nav class="tabs" aria-label="主要功能">
         <div class="tabs-inner">
-          <a href="#chart" data-route="chart">五十音表</a>
-          <a href="#quiz" data-route="quiz">測驗</a>
+          <a href="#kana" data-route="kana">假名</a>
+          <a href="#words" data-route="words">單字</a>
         </div>
       </nav>
       <div class="top-actions">
@@ -56,19 +57,44 @@ initSpeech();
 mountSyncButton(app);
 initSync();
 
-// 簡單的 hash 路由：#chart、#quiz
+// 簡單的 hash 路由。每個分頁先看熟悉度，再從底部的按鈕進去練習：
+//   #kana 五十音表 → #kana/quiz 練習假名
+//   #words 單字本 → #words/quiz 練習單字
+const ROUTES = {
+  kana: (v) => renderChart(v),
+  'kana/quiz': (v) => mountQuiz(v, 'kana'),
+  words: (v) => renderWordbook(v),
+  'words/quiz': (v) => mountQuiz(v, 'word'),
+};
+
+// 舊網址：#chart 是五十音表；#quiz 是以前的測驗頁，看上次練的是假名還是單字
+function resolve(hash) {
+  const h = hash.replace(/^#/, '');
+  if (Object.hasOwn(ROUTES, h)) return h;
+  if (h === 'quiz') return getPref('quizContent', 'kana') === 'word' ? 'words/quiz' : 'kana/quiz';
+  return 'kana';
+}
+
 const view = document.getElementById('view');
 let cleanup = null;
 
 function route() {
-  const name = location.hash === '#quiz' ? 'quiz' : 'chart';
+  const name = resolve(location.hash);
+  if (location.hash !== `#${name}`) {
+    try {
+      history.replaceState(null, '', `#${name}`);
+    } catch {
+      /* 改不了網址也沒關係，畫面照常顯示 */
+    }
+  }
+  const tab = name.split('/')[0];
   document.querySelectorAll('[data-route]').forEach((a) => {
-    if (a.dataset.route === name) a.setAttribute('aria-current', 'page');
+    if (a.dataset.route === tab) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   cleanup?.();
   view.innerHTML = '';
-  cleanup = name === 'quiz' ? mountQuiz(view) : renderChart(view);
+  cleanup = ROUTES[name](view);
   window.scrollTo(0, 0);
 }
 

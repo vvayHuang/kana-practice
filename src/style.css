@@ -214,7 +214,8 @@ button {
 
 .tabs-inner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   max-width: 320px;
   border: 1px solid var(--on-felt-2);
   border-radius: var(--r);
@@ -592,8 +593,9 @@ button {
 /* ---------- 五十音表 ---------- */
 
 /* 底部留給點假名後浮上來的對照紙條 */
-.chart {
-  padding-bottom: 120px;
+/* 每個分頁最下面「開始練習」的紙條：貼在螢幕底部，拇指按得到（樣式和測驗設定的開始列一樣） */
+.tab-bar {
+  margin-top: 0;
 }
 
 /* 第一次來的人看到的紙條 */
@@ -621,6 +623,25 @@ button {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* 熟練了一些假名之後，提醒可以去練單字 */
+.start-card.next-step {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 16px;
+}
+
+.start-card.next-step p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.start-card.next-step .link-btn {
+  flex: none;
 }
 
 .toolbar {
@@ -946,7 +967,155 @@ button {
   }
 }
 
+/* ---------- 單字本 ---------- */
+
+.w-range {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.w-range b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.w-top > .link-btn {
+  margin-left: -8px;
+}
+
+.w-filter {
+  margin-top: 14px;
+}
+
+.w-title {
+  margin: 0;
+  font-family: var(--font-brush);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 一列一個單字：熟練度記號、單字和拼音、意思。列和列之間是細線，外框是墨線 */
+.w-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+  border: 1.5px solid var(--ink);
+}
+
+.w-item {
+  background: var(--paper);
+}
+
+/* 點開的那一列用墨線框起來，和五十音表選到的格子一樣 */
+.w-item.open {
+  outline: 2.5px solid var(--ink);
+  outline-offset: -2.5px;
+}
+
+.w-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.w-row:focus-visible {
+  outline-offset: -4px;
+}
+
+@media (hover: hover) {
+  .w-row:hover {
+    background: var(--paper-2);
+  }
+}
+
+.w-mark {
+  display: flex;
+  justify-content: center;
+}
+
+.w-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  min-width: 0;
+}
+
+.w-word {
+  font-family: var(--font-kana);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+.w-romaji {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.w-zh {
+  max-width: 9em;
+  font-size: 15px;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+.w-entry {
+  padding: 0 14px 16px 36px;
+}
+
+/* 單字本裡的解釋接在單字下面，用虛線隔開就好 */
+.w-entry .entry {
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--rule);
+}
+
+.w-entry .entry-tags {
+  margin-top: 0;
+}
+
+.w-entry .entry-label {
+  margin-top: 14px;
+}
+
+.w-entry .entry-note {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.w-entry .ex-ja {
+  font-size: 18px;
+}
+
+.w-empty {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
 /* ---------- 測驗：設定 ---------- */
+
+/* 設定畫面最上面：回到五十音表或單字本 */
+.back-link {
+  margin: -4px 0 4px -8px;
+}
 
 /* 範圍是主角：每一行直接列出裡面的假名，不認得行名也看得懂 */
 .range-head {
@@ -1041,6 +1210,7 @@ button {
 .link-btn {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-height: 44px;
   padding: 0 8px;
   border: 0;
@@ -1053,6 +1223,12 @@ button {
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   cursor: pointer;
+}
+
+.link-btn svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
 }
 
 .range-note {
@@ -1718,6 +1894,29 @@ body.is-playing .wrap {
     grid-column: 1 / -1;
   }
 
+  /* 單字本：平假名在左，片假名在右 */
+  .wordbook {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px var(--col-gap);
+    align-items: start;
+  }
+
+  .wordbook > .sheet {
+    margin-bottom: 0;
+  }
+
+  .wordbook > .w-top,
+  .wordbook > .w-col:nth-child(2):last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* 分頁底部的開始列：兩欄的寬度太長，放在中間 */
+  .tab-bar {
+    max-width: 640px;
+    margin: 12px auto 0;
+  }
+
   .chart > .sheet.main {
     grid-row: span 2;
   }
@@ -1726,7 +1925,7 @@ body.is-playing .wrap {
   .quiz.is-setup {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     gap: 12px var(--col-gap);
     align-items: start;
   }
@@ -1737,6 +1936,11 @@ body.is-playing .wrap {
 
   .quiz.is-setup > .setup {
     grid-row: span 2;
+  }
+
+  .quiz.is-setup > .back-link {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   /* 這裡的開始列不是浮在內容上，所以跟其他紙一樣平放：沒有陰影也沒有墨框 */

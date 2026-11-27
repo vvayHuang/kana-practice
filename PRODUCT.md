@@ -22,7 +22,8 @@ Practice adapts to the learner. The quiz records right answers, wrong answers an
 
 ## Operating Context
 
-- Two views: 五十音表 (chart) and 測驗 (quiz: setup, play, result).
+- Two tabs, 假名 and 單字, ordered as learning steps; a third, 句子 (sentences and situational questions), is planned. Each tab first shows familiarity (the kana chart, or the word book listing readable words with mastery marks) and keeps a practice bar at the bottom that leads to that tab's quiz: setup, play, result.
+- The range of kana rows to practise is shared by both tabs; the word book and word quiz only use words spelled with those kana.
 - Tapping a kana plays its sound through the browser's Japanese voice.
 - After a word answer, a dictionary-style entry explains the word with an example sentence.
 - Published two ways: GitHub Pages, and a single-file page on claude.ai where practice records sync to the viewer's account.

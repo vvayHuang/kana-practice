@@ -113,8 +113,8 @@ export function record(key, ok, ms) {
 
 export const getStat = (key) => total[key] || null;
 
-// 有沒有任何練習紀錄（含其他裝置同步來的）
-export const hasStats = () => Object.keys(total).length > 0;
+// 有沒有練習紀錄（含其他裝置同步來的）；prefix 給了就只看那一種，例如 'word:' 只看單字
+export const hasStats = (prefix = '') => Object.keys(total).some((k) => k.startsWith(prefix));
 
 // 最近答對時平均花幾毫秒，沒有紀錄回傳 null
 export function avgTime(key) {

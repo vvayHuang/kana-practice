@@ -1,10 +1,11 @@
 import { GROUPS, ALL, toKatakana, display, keyOf, confusables } from './kana.js';
 import { WORDS } from './words.js';
 import { getPref, setPref, record, mastery, getStat, weight, onStatsChange, slowLimit } from './store.js';
+import { DEFAULT_GROUPS, itemsIn, scriptsFor, wordsIn } from './range.js';
+import { entryHTML } from './entry.js';
 import { say } from './speech.js';
 import { icons } from './ui.js';
 
-const CONTENTS = { kana: '假名', word: '單字' };
 const MODES = { k2r: '看假名 選拼音', r2k: '看拼音 選假名' };
 const WORD_MODES = { read: '單字→拼音', mean: '單字→意思', pick: '意思→單字' };
 const WORD_MIN = 4; // 單字至少要有幾個才能出題（一題四個選項）
@@ -112,41 +113,6 @@ const seg = (field, opts, cur) => `
       .join('')}
   </div>`;
 
-// 例句裡把這個單字標出來；い形容詞常會變化（からい → からくて），找不到整個字就標字幹
-function markWord(ex, w) {
-  const word = show(w, w.script);
-  const hit = ex.includes(word) ? word : w.dict.pos === 'い形容詞' ? word.slice(0, -1) : '';
-  return hit ? ex.replace(hit, `<b>${hit}</b>`) : ex;
-}
-
-// 單字答題後，題目下方的字典解釋：意思、念法、詞性、漢字或來源、使用情境、例句。
-// 題目已經大大顯示的東西（單字本身或意思）就不再重複。
-function entryHTML(w, mode) {
-  const d = w.dict;
-  const head =
-    mode === 'pick'
-      ? `<span class="entry-word" lang="ja">${show(w, w.script)}</span><span class="entry-romaji">${w.romaji}</span>`
-      : `<span class="entry-zh">${w.zh}</span><span class="entry-romaji">${w.romaji}</span>`;
-  if (!d) return `<div class="entry"><div class="entry-head">${head}</div></div>`;
-  const kata = w.script === 'kata';
-  return `
-    <div class="entry">
-      <div class="entry-head">${head}</div>
-      <div class="entry-tags">
-        <span class="tag">${d.pos}</span>
-        ${d.origin ? `<span class="tag">${kata ? '來源' : '漢字'} <b${kata ? '' : ' lang="ja"'}>${d.origin}</b></span>` : ''}
-      </div>
-      <p class="entry-label">使用情境</p>
-      <p class="entry-note">${d.note}</p>
-      <div class="entry-label">
-        例句
-        <button type="button" class="icon-btn plain small" data-act="speak-ex" aria-label="播放例句">${icons.volume}</button>
-      </div>
-      <p class="ex-ja" lang="ja">${markWord(d.ex, w)}</p>
-      <p class="ex-zh">${d.exZh}</p>
-    </div>`;
-}
-
 function resultMessage(pct, word) {
   if (pct === 100) return word ? '全對！這些單字都記住了！' : '全對！太厲害了！';
   if (pct >= 80) return word ? '很棒，大部分單字都認得了！' : '很棒，快要熟練了！';
@@ -154,17 +120,18 @@ function resultMessage(pct, word) {
   return word ? '慢慢來，單字多看幾次就會記住。' : '慢慢來，先回五十音表看一看也很好。';
 }
 
-export function mountQuiz(root) {
+// content：'kana' 練假名（假名分頁），'word' 練單字（單字分頁）
+export function mountQuiz(root, content) {
   const el = document.createElement('div');
   el.className = 'quiz';
   root.appendChild(el);
 
   const cfg = {
-    content: getPref('quizContent', 'kana'),
+    content,
     mode: getPref('quizMode', 'k2r'),
     wordMode: getPref('quizWordMode', 'read'),
     script: getPref('quizScript', 'hira'),
-    groups: new Set(getPref('quizGroups', ['a', 'ka', 'sa'])),
+    groups: new Set(getPref('quizGroups', DEFAULT_GROUPS)),
     length: getPref('quizLength', 10),
   };
   let screen = 'setup';
@@ -173,7 +140,6 @@ export function mountQuiz(root) {
   let weakShown = -1; // 設定畫面上顯示的「常答錯」數量
 
   const saveCfg = () => {
-    setPref('quizContent', cfg.content);
     setPref('quizMode', cfg.mode);
     setPref('quizWordMode', cfg.wordMode);
     setPref('quizScript', cfg.script);
@@ -181,14 +147,9 @@ export function mountQuiz(root) {
     setPref('quizLength', cfg.length);
   };
 
-  const selectedItems = () => GROUPS.filter((g) => cfg.groups.has(g.id)).flatMap((g) => g.items);
-  const scriptsFor = (s) => (s === 'mix' ? ['hira', 'kata'] : [s]);
+  const selectedItems = () => itemsIn(cfg.groups);
   // 只用已選範圍裡的假名就能寫出來的單字
-  const selectedWords = () => {
-    const known = new Set(selectedItems().map((i) => i.kana));
-    const scripts = scriptsFor(cfg.script);
-    return WORDS.filter((w) => scripts.includes(w.script) && w.kinds.every((k) => known.has(k)));
-  };
+  const selectedWords = () => wordsIn(cfg.groups, scriptsFor(cfg.script));
 
   // 目前設定下所有可能的題目
   function cfgQuestions() {
@@ -304,7 +265,10 @@ export function mountQuiz(root) {
     };
     const count = lengthOn === 'all' ? total : lengthOn;
 
+    const back = wordMode ? { href: '#words', text: '回到單字本' } : { href: '#kana', text: '回到五十音表' };
+
     el.innerHTML = `
+      <a class="link-btn back-link" href="${back.href}">${icons.back}${back.text}</a>
       <section class="sheet setup">
         <div class="range-head">
           <h2 class="sheet-title">要練哪幾行？</h2>
@@ -320,10 +284,6 @@ export function mountQuiz(root) {
         ${weak ? `<p class="range-note weak-note"><i class="dot weak"></i>其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
       </section>
       <section class="sheet fields">
-        <div class="field">
-          <p class="field-label">內容</p>
-          ${seg('content', CONTENTS, cfg.content)}
-        </div>
         <div class="field">
           <p class="field-label">題型</p>
           ${wordMode ? seg('wordMode', WORD_MODES, cfg.wordMode) : seg('mode', MODES, cfg.mode)}
@@ -411,7 +371,7 @@ export function mountQuiz(root) {
               : ''
           }
           <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : explain ? '' : '&nbsp;'}</p>
-          ${explain ? entryHTML(q.item, mode) : ''}
+          ${explain ? entryHTML(q.item, mode === 'pick' ? 'word' : 'zh') : ''}
         </section>
 
         <div class="dock">
