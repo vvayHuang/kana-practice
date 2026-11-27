@@ -1,10 +1,12 @@
-// 句子分頁：單字本裡那些單字的例句和熟練度，點一下聽整句、看拼音和出自哪個單字。
+// 句子分頁：最上面是情境題的卡片（scenebook.js），下面是單字本裡那些單字的例句和熟練度，
+// 點一下例句聽整句、看拼音和出自哪個單字。
 
 import { display } from './kana.js';
 import { savedGroups, rangeLabel } from './range.js';
 import { SENTENCES, sentencesIn, sentenceKey } from './sentences.js';
 import { markWord } from './entry.js';
 import { renderBook } from './book.js';
+import { sceneCardsHTML } from './scenebook.js';
 import { icons } from './ui.js';
 
 export function renderSentencebook(root) {
@@ -12,6 +14,7 @@ export function renderSentencebook(root) {
     cls: 'sentencebook',
     filterPref: 'sentFilter',
     unit: '句',
+    prefixHTML: sceneCardsHTML,
     load() {
       const groups = savedGroups();
       const items = sentencesIn(groups);
@@ -48,19 +51,16 @@ export function renderSentencebook(root) {
     speakText: (s) => s.ja,
     exText: (s) => s.ja,
     empty: {
-      none: '這個範圍還沒有能讀的單字，所以也還沒有例句。按下面的「練習句子」，多選幾行假名吧。',
+      none: '這個範圍還沒有能讀的單字，所以也還沒有例句。按下面的「練習例句」，多選幾行假名吧。',
       weak: '沒有常答錯的句子，很棒！',
       learning: '沒有正在練習的句子。',
       new: '這個範圍的句子都練過了！',
     },
-    barHTML: (counts, total) => {
-      const sum = !total
-        ? '<b>還沒有能練的句子</b>先多選幾行假名'
-        : counts.weak
-          ? `<b>${counts.weak} 句常答錯</b>練習時會先出現`
-          : `<b>${total} 句</b>下一步選題型和題數`;
-      return `<p class="start-sum">${sum}</p>
-        <a class="btn primary" href="#sentences/quiz">練習句子 ${icons.arrow}</a>`;
-    },
+    // 這一頁有兩種練習，兩個按鈕一樣大
+    barHTML: () => `
+      <div class="bar-two">
+        <a class="btn primary" href="#scenes/quiz">練習情境題</a>
+        <a class="btn primary" href="#sentences/quiz">練習例句</a>
+      </div>`,
   });
 }

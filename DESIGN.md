@@ -224,6 +224,10 @@ Corners are 2px everywhere. The only round shapes are the two mastery marks (a s
 - Ordering questions use chips: paper with a 1.5px ink border, 48px tall, the chunk in Klee One at 20px and, with the romaji hint on, its romaji under it. Placed chips sit in an answer line framed in ink, with dashed empty slots for the chunks still to place; a placed chip leaves a dashed outline in the bank so nothing below moves. After checking, the answer line takes the option states: Green Wash with the ring when right, Vermilion Wash with the cross when wrong.
 - Listening questions show one square 132 by 112 replay button with an ink border; the meaning options are one per row, left-aligned, at 17px.
 
+### Scene cards and situational questions
+- The sentence tab opens with the scenes as a ruled table of cards, two across (four from 1000px): the scene name in WenKai, a sample phrase in Klee One, a row of small mastery marks with one per question (a dashed ring for not yet practised, the only place that mark appears), and the mastered count.
+- A situational question writes the situation in WenKai at 19px. What the other person says sits in a slip with a 1.5px ink border and a replay button; its meaning appears only after answering. Options are one per row: the Japanese in Klee One at 18px with the romaji hint and the meaning in small sans under it. The meaning line is reserved before answering so the options never grow, and the explanation appears under an ink rule headed 為什麼.
+
 ### Practice cell
 - A square with dashed horizontal and vertical centre guides. In the chart it holds a kana, its romaji at the bottom edge, and a mastery mark in the bottom left corner, never the top right where ゛ and ゜ are written: solid dot for mastered, ring for practising, vermilion cross for often missed.
 

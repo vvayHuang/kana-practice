@@ -15,9 +15,9 @@ const LEVEL = { good: '已熟練', learning: '練習中', weak: '常答錯', new
 //   sections(xs)  → [{ title, items }]：分成幾段列出（例如平假名、片假名）
 //   key(x)        練習紀錄的 key；id(x) 項目編號
 //   rowHTML(x)    一列裡的內容；detailHTML(x) 點開後的解釋
-//   speakText(x)  點開時念的文字；exText(x) 解釋裡的喇叭按鈕念的文字
+//   speakText(x)  點開時念的文字；exText(x, which) 解釋裡的喇叭按鈕念的文字（which 是按鈕的 data-say）
 //   empty         { none, weak, learning, new }：沒有東西可列時的說明
-//   barHTML(counts, total) 底部紙條；nextHTML() 最上面的下一步提醒（可省略）
+//   barHTML(counts, total) 底部紙條；nextHTML() 最上面的下一步提醒、prefixHTML() 清單前面的其他內容（都可省略）
 export function renderBook(root, o) {
   const el = document.createElement('div');
   el.className = `book ${o.cls}`;
@@ -71,6 +71,7 @@ export function renderBook(root, o) {
 
     el.innerHTML = `
       ${o.nextHTML?.() || ''}
+      ${o.prefixHTML?.() || ''}
       <section class="sheet w-top">
         ${intro}
         ${
@@ -120,7 +121,8 @@ export function renderBook(root, o) {
     if (!t) return;
     if (t.dataset.act === 'speak-ex') {
       const x = byId.get(t.dataset.item);
-      if (x) say(o.exText(x), { force: true });
+      const text = x && o.exText(x, t.dataset.say);
+      if (text) say(text, { force: true });
     } else if (t.dataset.filter) {
       filter = t.dataset.filter;
       setPref(o.filterPref, filter);

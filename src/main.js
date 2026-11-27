@@ -3,6 +3,8 @@ import { renderChart } from './chart.js';
 import { mountQuiz } from './quiz.js';
 import { renderWordbook } from './wordbook.js';
 import { renderSentencebook } from './sentencebook.js';
+import { renderScene } from './scenebook.js';
+import { SCENE_BY_ID } from './scenes.js';
 import { initSpeech } from './speech.js';
 import { getPref, setPref } from './store.js';
 import { initSync } from './sync.js';
@@ -62,7 +64,8 @@ initSync();
 // 簡單的 hash 路由。每個分頁先看熟悉度，再從底部的按鈕進去練習：
 //   #kana 五十音表 → #kana/quiz 練習假名
 //   #words 單字本 → #words/quiz 練習單字
-//   #sentences 單字的例句 → #sentences/quiz 練習句子
+//   #sentences 情境題的卡片和單字的例句 → #sentences/quiz 練習例句、#scenes/quiz 練習情境題
+//   #scenes/greet 一個情境的題目 → #scenes/greet/quiz 練習這個情境（都算在句子分頁）
 const ROUTES = {
   kana: (v) => renderChart(v),
   'kana/quiz': (v) => mountQuiz(v, 'kana'),
@@ -70,21 +73,31 @@ const ROUTES = {
   'words/quiz': (v) => mountQuiz(v, 'word'),
   sentences: (v) => renderSentencebook(v),
   'sentences/quiz': (v) => mountQuiz(v, 'sentence'),
+  'scenes/quiz': (v) => mountQuiz(v, 'scene'),
 };
 
-// 舊網址：#chart 是五十音表；#quiz 是以前的測驗頁，看上次練的是假名還是單字
+// 一個情境的網址：#scenes/代號，後面加 /quiz 是練習
+function sceneRoute(h) {
+  const m = h.match(/^scenes\/([a-z]+)(\/quiz)?$/);
+  if (!m || !SCENE_BY_ID[m[1]]) return null;
+  return m[2] ? (v) => mountQuiz(v, 'scene', { scene: m[1] }) : (v) => renderScene(v, m[1]);
+}
+
+// 回傳 [網址名稱, 畫面]。舊網址：#chart 是五十音表；#quiz 是以前的測驗頁，看上次練的是假名還是單字
 function resolve(hash) {
   const h = hash.replace(/^#/, '');
-  if (Object.hasOwn(ROUTES, h)) return h;
-  if (h === 'quiz') return getPref('quizContent', 'kana') === 'word' ? 'words/quiz' : 'kana/quiz';
-  return 'kana';
+  if (Object.hasOwn(ROUTES, h)) return [h, ROUTES[h]];
+  const scene = sceneRoute(h);
+  if (scene) return [h, scene];
+  const name = h === 'quiz' ? (getPref('quizContent', 'kana') === 'word' ? 'words/quiz' : 'kana/quiz') : 'kana';
+  return [name, ROUTES[name]];
 }
 
 const view = document.getElementById('view');
 let cleanup = null;
 
 function route() {
-  const name = resolve(location.hash);
+  const [name, mount] = resolve(location.hash);
   if (location.hash !== `#${name}`) {
     try {
       history.replaceState(null, '', `#${name}`);
@@ -92,14 +105,14 @@ function route() {
       /* 改不了網址也沒關係，畫面照常顯示 */
     }
   }
-  const tab = name.split('/')[0];
+  const tab = name.startsWith('scenes') ? 'sentences' : name.split('/')[0];
   document.querySelectorAll('[data-route]').forEach((a) => {
     if (a.dataset.route === tab) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   cleanup?.();
   view.innerHTML = '';
-  cleanup = ROUTES[name](view);
+  cleanup = mount(view);
   window.scrollTo(0, 0);
 }
 

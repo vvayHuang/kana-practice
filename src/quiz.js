@@ -4,6 +4,7 @@ import { getPref, setPref, record, mastery, getStat, weight, onStatsChange, slow
 import { DEFAULT_GROUPS, itemsIn, scriptsFor, wordsIn } from './range.js';
 import { entryHTML, markWord } from './entry.js';
 import { sentencesIn, sentenceKey, prepSentence } from './sentences.js';
+import { SCENES, SCENE_BY_ID, SCENE_ITEMS, sceneKey } from './scenes.js';
 import { say, canSpeak } from './speech.js';
 import { icons } from './ui.js';
 
@@ -11,7 +12,7 @@ const MODES = { k2r: '看假名 選拼音', r2k: '看拼音 選假名' };
 const WORD_MODES = { read: '單字→拼音', mean: '單字→意思', pick: '意思→單字' };
 const SENT_MODES = { mix: '混合', order: '排句子', mean: '選意思', listen: '聽句子' };
 const HINTS = { off: '關', on: '開' };
-const NOUN = { kana: '假名', word: '單字', sentence: '句子' };
+const NOUN = { kana: '假名', word: '單字', sentence: '句子', scene: '情境題' };
 const WORD_MIN = 4; // 單字、句子至少要有幾個才能出題（一題四個選項）
 const SCRIPTS = { hira: '平假名', kata: '片假名', mix: '混合' };
 const SCRIPT_NAME = { hira: '平假名', kata: '片假名' };
@@ -35,17 +36,30 @@ const uniqBy = (arr, f) => {
   });
 };
 
-// 題目可能是假名、單字或句子。單字自己帶著文字種類（script）和中文意思（zh）；句子的 kind 是 'sentence'。
+// 題目可能是假名、單字、句子或情境題。單字自己帶著文字種類（script）和中文意思（zh）；
+// 句子的 kind 是 'sentence'，情境題的 kind 是 'scene'（見 sentences.js、scenes.js）。
 const isSentence = (item) => item.kind === 'sentence';
-const isWord = (item) => 'zh' in item && !isSentence(item);
+const isScene = (item) => item.kind === 'scene';
+const isWord = (item) => !item.kind && 'zh' in item;
 const show = (item, script) => display(item, item.script || script);
+const kindOf = (item) => item.kind || (isWord(item) ? 'word' : 'kana');
 const qKey = (q) =>
-  isSentence(q.item) ? sentenceKey(q.item) : isWord(q.item) ? `word:${q.item.kana}` : keyOf(q.item, q.script);
-const kindOf = (item) => (isSentence(item) ? 'sentence' : isWord(item) ? 'word' : 'kana');
-// 答完要念的：假名、單字念它本身，句子念整句
-const speakText = (q) => (isSentence(q.item) ? q.item.ja : show(q.item, q.script));
-// 選到的是不是正確答案：句子題的選項就是句子本身；假名、單字比對假名
-const isRight = (o, q) => (isSentence(q.item) ? o === q.item : o.kana === q.item.kana);
+  ({
+    sentence: () => sentenceKey(q.item),
+    scene: () => sceneKey(q.item),
+    word: () => `word:${q.item.kana}`,
+    kana: () => keyOf(q.item, q.script),
+  })[kindOf(q.item)]();
+// 答完要念的：假名、單字念它本身，句子念整句，情境題念正確的說法（只有中文答案時念對方的話）
+const speakText = (q) =>
+  isScene(q.item)
+    ? q.item.answer.ja || q.item.they?.ja || ''
+    : isSentence(q.item)
+      ? q.item.ja
+      : show(q.item, q.script);
+// 選到的是不是正確答案：句子題的選項是句子本身，情境題是答案那一項；假名、單字比對假名
+const isRight = (o, q) =>
+  isScene(q.item) ? o === q.item.answer : isSentence(q.item) ? o === q.item : o.kana === q.item.kana;
 
 // 依權重抽 n 題（不重複）：不熟的假名權重高，比較容易被抽到
 function pickWeighted(qs, n) {
@@ -128,6 +142,7 @@ const MESSAGES = {
   kana: ['全對！太厲害了！', '很棒，快要熟練了！', '不錯喔，再多練幾次會更熟。', '慢慢來，先回五十音表看一看也很好。'],
   word: ['全對！這些單字都記住了！', '很棒，大部分單字都認得了！', '不錯喔，再多練幾次就記得住。', '慢慢來，單字多看幾次就會記住。'],
   sentence: ['全對！這些句子都看懂了！', '很棒，大部分句子都看得懂了！', '不錯喔，多聽幾次會越來越順。', '慢慢來，先回句子列表聽一聽也很好。'],
+  scene: ['全對！遇到這些場合都知道怎麼說了！', '很棒，大部分場合都會說了！', '不錯喔，多看幾次解說會更有把握。', '慢慢來，先回情境列表看一看、聽一聽也很好。'],
 };
 
 function resultMessage(pct, kind) {
@@ -135,8 +150,9 @@ function resultMessage(pct, kind) {
   return pct === 100 ? m[0] : pct >= 80 ? m[1] : pct >= 50 ? m[2] : m[3];
 }
 
-// content：'kana' 練假名（假名分頁），'word' 練單字（單字分頁），'sentence' 練句子（句子分頁）
-export function mountQuiz(root, content) {
+// content：'kana' 練假名（假名分頁），'word' 練單字（單字分頁），'sentence' 練例句、'scene' 練情境題（句子分頁）
+// opts.scene：從某個情境的頁面進來時，只先選那個情境
+export function mountQuiz(root, content, opts = {}) {
   const el = document.createElement('div');
   el.className = 'quiz';
   root.appendChild(el);
@@ -149,6 +165,7 @@ export function mountQuiz(root, content) {
     hint: getPref('sentHint', 'off'), // 句子題要不要顯示拼音
     script: getPref('quizScript', 'hira'),
     groups: new Set(getPref('quizGroups', DEFAULT_GROUPS)),
+    scenes: new Set(opts.scene ? [opts.scene] : getPref('quizScenes', SCENES.map((x) => x.id))),
     length: getPref('quizLength', 10),
   };
   let screen = 'setup';
@@ -163,6 +180,7 @@ export function mountQuiz(root, content) {
     setPref('sentHint', cfg.hint);
     setPref('quizScript', cfg.script);
     setPref('quizGroups', [...cfg.groups]);
+    setPref('quizScenes', [...cfg.scenes]);
     setPref('quizLength', cfg.length);
   };
 
@@ -172,6 +190,10 @@ export function mountQuiz(root, content) {
 
   // 目前設定下所有可能的題目
   function cfgQuestions() {
+    if (cfg.content === 'scene') {
+      const list = SCENE_ITEMS.filter((q) => cfg.scenes.has(q.scene));
+      return { qs: list.map((item) => ({ item })), pool: list, mode: 'scene', ready: list.length > 0 };
+    }
     if (cfg.content === 'sentence') {
       const list = sentencesIn(cfg.groups);
       return { qs: list.map((item) => ({ item })), pool: list, mode: cfg.sentMode, ready: list.length >= WORD_MIN };
@@ -189,13 +211,17 @@ export function mountQuiz(root, content) {
   // 準備一題：假名、單字是四個選項；句子題由 sentences.js 決定題型，排句子是一組詞塊
   function prep(q, pool, mode) {
     if (isSentence(q.item)) return prepSentence(q, pool, mode, canSpeak());
+    if (isScene(q.item)) return { ...q, options: shuffle([q.item.answer, ...q.item.wrong]) };
     return { ...q, options: (isWord(q.item) ? makeWordOptions : makeOptions)(q, pool) };
   }
 
-  // 聽句子：題目一出現就念一次（是使用者按了按鈕才走到這裡，瀏覽器會讓它播）
+  // 題目一出現就念：聽句子一定念；情境題有對方說的話時，照自動發音的設定念
+  // （是使用者按了按鈕才走到這裡，瀏覽器會讓它播）
   function cue() {
     const q = screen === 'play' && game.qs[game.i];
-    if (q?.mode === 'listen') say(q.item.ja, { force: true });
+    if (!q) return;
+    if (q.mode === 'listen') say(q.item.ja, { force: true });
+    else if (isScene(q.item) && q.item.they) say(q.item.they.ja);
   }
 
   function start(questions, pool, mode) {
@@ -297,6 +323,7 @@ export function mountQuiz(root, content) {
     const items = selectedItems();
     const wordMode = cfg.content === 'word';
     const sentMode = cfg.content === 'sentence';
+    const sceneMode = cfg.content === 'scene';
     const noun = NOUN[cfg.content];
     const { qs, ready } = cfgQuestions();
     const words = wordMode ? qs.length : 0;
@@ -312,7 +339,9 @@ export function mountQuiz(root, content) {
       ? '這個範圍能組成的單字太少，多選幾行吧'
       : sentMode
         ? '這個範圍的例句太少，多選幾行吧'
-        : '先選至少一個範圍喔';
+        : sceneMode
+          ? '先選至少一個情境喔'
+          : '先選至少一個範圍喔';
 
     const kata = cfg.script === 'kata';
     const conv = (k) => (kata ? toKatakana(k) : k);
@@ -342,7 +371,32 @@ export function mountQuiz(root, content) {
       kana: { href: '#kana', text: '回到五十音表' },
       word: { href: '#words', text: '回到單字本' },
       sentence: { href: '#sentences', text: '回到句子列表' },
+      scene: opts.scene
+        ? { href: `#scenes/${opts.scene}`, text: `回到${SCENE_BY_ID[opts.scene].name}` }
+        : { href: '#sentences', text: '回到句子' },
     }[cfg.content];
+    // 情境題不用選假名的範圍，改成選要練哪些情境
+    const scenePick = (x) => `<button type="button" class="row-pick" data-scene="${x.id}" aria-pressed="${cfg.scenes.has(x.id)}">
+        <span class="rp-scene">${x.name}</span>
+        <span class="rp-name">${x.items.length} 題</span>
+      </button>`;
+    const weakNote = weak
+      ? `<p class="range-note weak-note"><i class="dot weak"></i>其中 ${weak} ${sceneMode ? '題' : `個${noun}`}常答錯，測驗時會優先出現。</p>`
+      : '';
+    const rangeHTML = sceneMode
+      ? `<section class="sheet setup">
+          <div class="range-head">
+            <h2 class="sheet-title">要練哪些情境？</h2>
+            <span class="muted">已選 ${cfg.scenes.size} 個情境・${total} 題</span>
+          </div>
+          <div class="rows">${SCENES.map(scenePick).join('')}</div>
+          <div class="quick">
+            <button type="button" class="link-btn" data-quick="scenes-all">全選</button>
+            <button type="button" class="link-btn" data-quick="scenes-none">清除</button>
+          </div>
+          ${weakNote}
+        </section>`
+      : '';
     const typeSeg = wordMode
       ? seg('wordMode', WORD_MODES, cfg.wordMode)
       : sentMode
@@ -351,7 +405,8 @@ export function mountQuiz(root, content) {
 
     el.innerHTML = `
       <a class="link-btn back-link" href="${back.href}">${icons.back}${back.text}</a>
-      <section class="sheet setup">
+      ${rangeHTML}
+      <section class="sheet setup"${sceneMode ? ' hidden' : ''}>
         <div class="range-head">
           <h2 class="sheet-title">要練哪幾行？</h2>
           <span class="muted">已選 ${items.length} 個假名${wordMode ? `・${words} 個單字` : sentMode ? `・${total} 句` : ''}</span>
@@ -364,15 +419,15 @@ export function mountQuiz(root, content) {
         </div>
         ${wordMode ? '<p class="range-note">只會出現用已選的假名就能寫出來的單字。</p>' : ''}
         ${sentMode ? '<p class="range-note">只會出現單字本裡那些單字的例句。句子裡可能有還沒學過的假名，可以打開拼音提示。</p>' : ''}
-        ${weak ? `<p class="range-note weak-note"><i class="dot weak"></i>其中 ${weak} 個${noun}常答錯，測驗時會優先出現。</p>` : ''}
+        ${sceneMode ? '' : weakNote}
       </section>
       <section class="sheet fields">
-        <div class="field">
+        <div class="field"${sceneMode ? ' hidden' : ''}>
           <p class="field-label">題型</p>
           ${typeSeg}
         </div>
         ${
-          sentMode
+          sentMode || sceneMode
             ? `<div class="field">
                 <p class="field-label">拼音</p>
                 ${seg('hint', HINTS, cfg.hint)}
@@ -391,7 +446,9 @@ export function mountQuiz(root, content) {
       <div class="sheet start-bar">
         <p class="start-sum">${
           ready
-            ? `<b>${count} 題</b>${wordMode ? `${words} 個單字` : sentMode ? `${total} 句` : `${items.length} 個假名`}裡出題`
+            ? `<b>${count} 題</b>${
+                wordMode ? `${words} 個單字` : sentMode ? `${total} 句` : sceneMode ? `${total} 題情境題` : `${items.length} 個假名`
+              }裡出題`
             : emptyHint
         }</p>
         <button type="button" class="btn primary" data-act="start" ${ready ? '' : 'disabled'}>
@@ -408,6 +465,12 @@ export function mountQuiz(root, content) {
     const kana = (i) => `<b lang="ja">${show(i, q.script)}</b>`;
     let text;
     if (ok) text = `<div class="fb-text ok">${icons.check}<span>答對了！</span></div>`;
+    // 情境題答完每個選項都會寫出意思，這裡只說選到的是什麼
+    else if (isScene(q.item))
+      text = `<div class="fb-text bad">
+          <span>答錯了</span>
+          <small>你選的${picked.ja ? '意思' : ''}是「${picked.zh}」</small>
+        </div>`;
     // 句子題的正確答案寫在題目區塊裡（排句子）或是圈起來的選項（選意思、聽句子）
     else if (isSentence(q.item))
       text = `<div class="fb-text bad">
@@ -464,6 +527,7 @@ export function mountQuiz(root, content) {
   function drawPlay() {
     const q = game.qs[game.i];
     if (isSentence(q.item)) return drawSentence(q);
+    if (isScene(q.item)) return drawScene(q);
     const mode = game.mode;
     const shown = show(q.item, q.script);
     // 每種題型：題目上面的說明、題目的樣式和內容、選項顯示什麼
@@ -506,6 +570,56 @@ export function mountQuiz(root, content) {
 
     // 不會自動跳題時，把焦點放到「下一題」，鍵盤直接按 Enter 就好
     if (game.answered && (!ok || word)) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
+  }
+
+  // 情境題：場合（中文）、對方說的話（接話題才有），選出該說的話。
+  // 答完每個選項下面都會寫出意思，知道錯的那些是什麼場合用的；還沒答時先佔好位置，選項才不會長高。
+  function drawScene(q) {
+    const it = q.item;
+    const answered = game.answered;
+    const ok = answered && game.ok;
+    const hint = game.hint;
+    const they = it.they
+      ? `<div class="sc-they">
+          <div class="sc-they-text">
+            <p class="s-ja" lang="ja">${it.they.ja}</p>
+            ${hint || answered ? `<p class="s-romaji">${it.they.romaji}</p>` : ''}
+            ${answered ? `<p class="s-zh">${it.they.zh}</p>` : ''}
+          </div>
+          <button type="button" class="icon-btn plain" data-act="speak-they" aria-label="播放對方說的話">${icons.volume}</button>
+        </div>`
+      : '';
+    const label = (o) =>
+      o.ja
+        ? `<span class="sc-opt-ja" lang="ja">${o.ja}</span>${hint ? `<small>${o.romaji}</small>` : ''}<small${
+            answered ? '' : ' class="keep-space" aria-hidden="true"'
+          }>${o.zh}</small>`
+        : o.zh;
+
+    el.innerHTML = `
+      <div class="play">
+        ${playTopHTML()}
+        <section class="sheet prompt s-prompt sc-prompt${answered ? ' answered' : ''}">
+          <p class="prompt-label">情境題・${SCENE_BY_ID[it.scene].name}</p>
+          ${
+            answered && it.answer.ja
+              ? `<button type="button" class="icon-btn speak" data-act="speak" aria-label="播放正確的說法">${icons.volume}</button>`
+              : ''
+          }
+          <div class="s-main">
+            <p class="sc-ask">${it.ask}</p>
+            ${they}
+          </div>
+          ${answered ? `<div class="sc-why"><p class="entry-label">為什麼</p><p class="sc-note">${it.note}</p></div>` : ''}
+          <p class="prompt-meta">${game.streak >= 3 ? `連續答對 ${game.streak} 題` : '&nbsp;'}</p>
+        </section>
+        <div class="dock">
+          ${optionsHTML(q, label, ' sentences scene', false)}
+          <div class="feedback" aria-live="polite">${answered ? feedbackHTML(q, ok) : ''}</div>
+        </div>
+      </div>`;
+
+    if (answered) el.querySelector('[data-act="next"]')?.focus({ preventScroll: true });
   }
 
   // 句子題：排句子、選意思、聽句子
@@ -608,7 +722,17 @@ export function mountQuiz(root, content) {
     const sentList = (qs) => `<ul class="miss-sent">
       ${qs.map((q) => `<li><span class="s-ja" lang="ja">${q.item.ja}</span><span class="s-zh">${q.item.zh}</span></li>`).join('')}
     </ul>`;
-    const kanaList = (qs) => kind === 'sentence' ? sentList(qs) : `<ul class="miss${word ? ' words' : ''}">
+    // 情境題一列一題：場合和該說的話
+    const sceneList = (qs) => `<ul class="miss-sent">
+      ${qs
+        .map(
+          (q) => `<li><span class="sc-ask">${q.item.ask}</span>${
+            q.item.answer.ja ? `<span class="s-ja" lang="ja">${q.item.answer.ja}</span>` : ''
+          }<span class="s-zh">${q.item.answer.zh}</span></li>`,
+        )
+        .join('')}
+    </ul>`;
+    const kanaList = (qs) => kind === 'scene' ? sceneList(qs) : kind === 'sentence' ? sentList(qs) : `<ul class="miss${word ? ' words' : ''}">
       ${qs
         .map(
           (q) => `<li><span class="k" lang="ja">${show(q.item, q.script)}</span><span class="r">${q.item.romaji}</span>${
@@ -664,6 +788,14 @@ export function mountQuiz(root, content) {
       if (cfg.groups.has(id)) cfg.groups.delete(id);
       else cfg.groups.add(id);
       refocus = `[data-group="${id}"]`;
+    } else if (t.dataset.scene) {
+      const id = t.dataset.scene;
+      if (cfg.scenes.has(id)) cfg.scenes.delete(id);
+      else cfg.scenes.add(id);
+      refocus = `[data-scene="${id}"]`;
+    } else if (t.dataset.quick?.startsWith('scenes-')) {
+      cfg.scenes = new Set(t.dataset.quick === 'scenes-all' ? SCENES.map((x) => x.id) : []);
+      refocus = `[data-quick="${t.dataset.quick}"]`;
     } else if (t.dataset.quick) {
       const q = t.dataset.quick;
       cfg.groups = new Set(
@@ -686,6 +818,7 @@ export function mountQuiz(root, content) {
         case 'start': return startFromCfg();
         case 'next': return next();
         case 'speak': return q && say(speakText(q), { force: true });
+        case 'speak-they': return q?.item.they && say(q.item.they.ja, { force: true });
         case 'check': return check();
         case 'clear':
           if (q?.bank && !game.answered) {

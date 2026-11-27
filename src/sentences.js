@@ -70,6 +70,15 @@ export function chunkRomaji(chunk) {
 
 const ROMAJI_END = { '。': '.', '！': '!', '？': '?' };
 
+// 一整句的拼音（句子中間的「。」也會換成句點，例如「はじめまして。たなかです。」）
+export const romajiOf = (ja) =>
+  (ja.match(/[^。！？]+[。！？]?/g) || [])
+    .map((part) => {
+      const end = part.match(END)?.[0] || '';
+      return chunksOf(part).map(chunkRomaji).join(' ') + (ROMAJI_END[end] || '');
+    })
+    .join(' ');
+
 export const SENTENCES = WORDS.filter((w) => w.dict?.ex).map((w) => {
   const ja = w.dict.ex;
   const chunks = chunksOf(ja);
@@ -82,7 +91,7 @@ export const SENTENCES = WORDS.filter((w) => w.dict?.ex).map((w) => {
     word: w,
     chunks,
     end,
-    romaji: chunks.map(chunkRomaji).join(' ') + (ROMAJI_END[end] || ''),
+    romaji: romajiOf(ja),
   };
 });
 

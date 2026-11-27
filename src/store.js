@@ -86,9 +86,9 @@ const TIME_WINDOW = 5; // 作答時間只看最近大約 5 次，變快之後很
 const TIME_CAP = 10000;
 const TIME_IGNORE = 30000;
 const SLOW_MS = 3000; // 平均超過這個時間就算「答對但還不熟」
-// 單字的紀錄用 word: 開頭，句子用 sent: 開頭；越長的時間放得越寬
+// 單字的紀錄用 word: 開頭，句子用 sent: 開頭，情境題用 scene: 開頭；要讀得越多，時間放得越寬
 export const slowLimit = (key) =>
-  key.startsWith('sent:') ? SLOW_MS * 4 : key.startsWith('word:') ? SLOW_MS * 2 : SLOW_MS;
+  key.startsWith('sent:') || key.startsWith('scene:') ? SLOW_MS * 4 : key.startsWith('word:') ? SLOW_MS * 2 : SLOW_MS;
 
 export function record(key, ok, ms) {
   change(() => {
