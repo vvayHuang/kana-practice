@@ -2,6 +2,7 @@ import './style.css';
 import { renderChart } from './chart.js';
 import { mountQuiz } from './quiz.js';
 import { renderWordbook } from './wordbook.js';
+import { renderSentencebook } from './sentencebook.js';
 import { initSpeech } from './speech.js';
 import { getPref, setPref } from './store.js';
 import { initSync } from './sync.js';
@@ -17,6 +18,7 @@ app.innerHTML = `
         <div class="tabs-inner">
           <a href="#kana" data-route="kana">假名</a>
           <a href="#words" data-route="words">單字</a>
+          <a href="#sentences" data-route="sentences">句子</a>
         </div>
       </nav>
       <div class="top-actions">
@@ -60,11 +62,14 @@ initSync();
 // 簡單的 hash 路由。每個分頁先看熟悉度，再從底部的按鈕進去練習：
 //   #kana 五十音表 → #kana/quiz 練習假名
 //   #words 單字本 → #words/quiz 練習單字
+//   #sentences 單字的例句 → #sentences/quiz 練習句子
 const ROUTES = {
   kana: (v) => renderChart(v),
   'kana/quiz': (v) => mountQuiz(v, 'kana'),
   words: (v) => renderWordbook(v),
   'words/quiz': (v) => mountQuiz(v, 'word'),
+  sentences: (v) => renderSentencebook(v),
+  'sentences/quiz': (v) => mountQuiz(v, 'sentence'),
 };
 
 // 舊網址：#chart 是五十音表；#quiz 是以前的測驗頁，看上次練的是假名還是單字

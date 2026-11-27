@@ -7,7 +7,7 @@ import { icons } from './ui.js';
 const show = (w) => display(w, w.script);
 
 // 例句裡把這個單字標出來；い形容詞常會變化（からい → からくて），找不到整個字就標字幹
-function markWord(ex, w) {
+export function markWord(ex, w) {
   const word = show(w);
   const hit = ex.includes(word) ? word : w.dict.pos === 'い形容詞' ? word.slice(0, -1) : '';
   return hit ? ex.replace(hit, `<b>${hit}</b>`) : ex;
@@ -38,7 +38,7 @@ export function entryHTML(w, head) {
       <p class="entry-note">${d.note}</p>
       <div class="entry-label">
         例句
-        <button type="button" class="icon-btn plain small" data-act="speak-ex" data-word="${w.kana}" aria-label="播放例句">${icons.volume}</button>
+        <button type="button" class="icon-btn plain small" data-act="speak-ex" data-item="${w.kana}" aria-label="播放例句">${icons.volume}</button>
       </div>
       <p class="ex-ja" lang="ja">${markWord(d.ex, w)}</p>
       <p class="ex-zh">${d.exZh}</p>

@@ -172,11 +172,11 @@ At night the page becomes a dark desk (#0f131d) with slightly lighter sheets (#2
 
 ## Layout
 
-Below 1000px: one column, at most 640px wide, with 16px side margins. Sections follow each other down the page, separated by space and by the ink frames of their tables, not by boxes. From 1000px the page is 1064px wide with two columns 40px apart: on the chart 清音 is on the left with 濁音 and 拗音 on the right; on the word book 平假名 words are on the left and 片假名 words on the right; on the quiz setup the range picker is on the left with the other settings and the start bar on the right. Play and result stay a single 640px column in the middle.
+Below 1000px: one column, at most 640px wide, with 16px side margins. Sections follow each other down the page, separated by space and by the ink frames of their tables, not by boxes. From 1000px the page is 1064px wide with two columns 40px apart: on the chart 清音 is on the left with 濁音 and 拗音 on the right; on the word book 平假名 words are on the left and 片假名 words on the right; the sentence list runs in two columns; on the quiz setup the range picker is on the left with the other settings and the start bar on the right. Play and result stay a single 640px column in the middle.
 
 Tables are CSS grids with a 1px gap over the rule colour, so the lines are the gaps, inside a 1.5px ink frame. The kana chart has a 28px first column holding the row name written vertically.
 
-The header is one 60px ink band at every width holding the tabs (假名, 單字) and the action buttons. The product name is present only as a visually hidden heading. While a quiz is being answered the band is hidden so only the question shows; the close button at the top left of the play screen leaves the quiz.
+The header is one 60px ink band at every width holding the tabs (假名, 單字, 句子) and the action buttons. The product name is present only as a visually hidden heading. While a quiz is being answered the band is hidden so only the question shows; the close button at the top left of the play screen leaves the quiz.
 
 The play screen is exactly one viewport tall. The four options and the feedback line form a fixed-height block at the bottom that never moves; the question takes the remaining height and keeps that height before and after answering, with the dictionary entry scrolling inside it. Every tab page (chart, word book) keeps a practice bar stuck to the bottom of the viewport at every width, centred at 640px on wide screens; below 1000px the quiz setup does the same with its start bar. The quiz setup opens with a back link to its tab's page.
 
@@ -215,10 +215,14 @@ Corners are 2px everywhere. The only round shapes are the two mastery marks (a s
 - Things that sit on the page as a separate piece of paper (the first-visit note, the feedback line, the floating bars) take a 1.5px ink border in the light theme, since paper on paper would otherwise vanish.
 
 ### Navigation
-- Equal-width tabs in a 1px On Band Muted frame in the ink band, one per learning step (假名, 單字; 句子 will be the third). The current tab is a paper block with ink text; the others are On Band text and take Band Raised on hover. The tab stays current on its quiz screens too.
+- Equal-width tabs in a 1px On Band Muted frame in the ink band, one per learning step (假名, 單字, 句子). The current tab is a paper block with ink text; the others are On Band text and take Band Raised on hover. The tab stays current on its quiz screens too.
 
 ### Word book row
-- A ruled list inside a 1.5px ink frame, one 52px row per word: mastery mark in a 14px column at the left (nothing for not yet practised), the word in Klee One at 22px with its romaji, and the meaning right-aligned. Tapping a row plays the word and opens its dictionary entry under it; the open row takes a 2.5px ink frame, like the selected cell on the chart.
+- A ruled list inside a 1.5px ink frame, one 52px row per word: mastery mark in a 14px column at the left (nothing for not yet practised), the word in Klee One at 22px with its romaji, and the meaning right-aligned. Tapping a row plays the word and opens its dictionary entry under it; the open row takes a 2.5px ink frame, like the selected cell on the chart. The sentence list uses the same row with the sentence in Klee One at 17px over its meaning.
+
+### Sentence chips
+- Ordering questions use chips: paper with a 1.5px ink border, 48px tall, the chunk in Klee One at 20px and, with the romaji hint on, its romaji under it. Placed chips sit in an answer line framed in ink, with dashed empty slots for the chunks still to place; a placed chip leaves a dashed outline in the bank so nothing below moves. After checking, the answer line takes the option states: Green Wash with the ring when right, Vermilion Wash with the cross when wrong.
+- Listening questions show one square 132 by 112 replay button with an ink border; the meaning options are one per row, left-aligned, at 17px.
 
 ### Practice cell
 - A square with dashed horizontal and vertical centre guides. In the chart it holds a kana, its romaji at the bottom edge, and a mastery mark in the bottom left corner, never the top right where ゛ and ゜ are written: solid dot for mastered, ring for practising, vermilion cross for often missed.

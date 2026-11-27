@@ -216,7 +216,7 @@ button {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  max-width: 320px;
+  max-width: 360px;
   border: 1px solid var(--on-felt-2);
   border-radius: var(--r);
 }
@@ -1110,6 +1110,66 @@ button {
   color: var(--ink-2);
 }
 
+/* ---------- 句子列表 ---------- */
+
+/* 一列一句：日文在上、中文在下 */
+.s-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.s-ja {
+  margin: 0;
+  font-family: var(--font-kana);
+  font-weight: 600;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.w-row .s-ja {
+  font-size: 17px;
+}
+
+.w-row .s-zh {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.s-detail {
+  padding-top: 6px;
+  border-top: 1px dashed var(--rule);
+}
+
+.s-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.s-romaji {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.s-from {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.s-from b {
+  margin: 0 2px;
+  font-family: var(--font-kana);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 /* ---------- 測驗：設定 ---------- */
 
 /* 設定畫面最上面：回到五十音表或單字本 */
@@ -1551,7 +1611,8 @@ body.is-playing .wrap {
 }
 
 /* 例句裡的這個單字：字旁加圈點 */
-.ex-ja b {
+.ex-ja b,
+.s-ja b {
   font-weight: inherit;
   text-emphasis: filled dot var(--ink);
   -webkit-text-emphasis: filled dot var(--ink);
@@ -1563,6 +1624,179 @@ body.is-playing .wrap {
   margin: 2px 0 0;
   font-size: 15px;
   color: var(--ink-2);
+}
+
+/* ---------- 句子題 ---------- */
+
+.s-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.s-ja.big {
+  font-size: clamp(22px, 6.4vw, 28px);
+  text-wrap: balance;
+}
+
+.s-zh.big {
+  margin: 0;
+  font-family: var(--font-brush);
+  font-size: clamp(24px, 7vw, 30px);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.s-prompt .s-romaji {
+  font-size: 16px;
+}
+
+.s-prompt .s-from {
+  margin-top: 14px;
+}
+
+.s-tip {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.s-answer {
+  margin: 4px 0 -8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* 聽句子：一個大的喇叭按鈕，可以一直重聽 */
+.listen-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 132px;
+  height: 112px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-brush);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.listen-btn svg {
+  width: 40px;
+  height: 40px;
+}
+
+/* 排句子：排好的詞放在一條框裡，還沒放的位置是虛線格 */
+.s-line {
+  position: relative;
+  align-self: stretch;
+  min-height: 72px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 44px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--r);
+}
+
+/* 檢查後和選項一樣：對了綠框畫圈，錯了朱色打叉 */
+.s-line.correct {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+  box-shadow: inset 0 0 0 2.5px var(--ok);
+}
+
+.s-line.wrong {
+  border-color: var(--shu);
+  background: var(--shu-soft);
+}
+
+.slot {
+  width: 56px;
+  height: 48px;
+  border: 1.5px dashed var(--ink-3);
+  border-radius: var(--r);
+}
+
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 4px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-kana);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    transform 0.1s;
+}
+
+.chip small {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.chip:disabled {
+  cursor: default;
+}
+
+.chip:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+@media (hover: hover) {
+  .chip:not(:disabled):not(.used):hover {
+    background: var(--paper-2);
+  }
+}
+
+/* 放上去的詞在原來的位置留一個虛線框，下面的詞才不會跳動 */
+.chip.used {
+  border-style: dashed;
+  border-color: var(--rule);
+  background: transparent;
+  color: transparent;
+  cursor: default;
+}
+
+.chip.used small {
+  color: transparent;
+}
+
+.bank {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.order-actions {
+  height: 72px;
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  align-items: center;
+  gap: 8px;
 }
 
 /* 選項和回饋列固定在畫面底部，高度不變：答題前後、題目長短都不會讓它們上下移動。
@@ -1605,6 +1839,26 @@ body.is-playing .wrap {
 .options.words .opt {
   font-size: 20px;
   overflow-wrap: anywhere;
+}
+
+/* 句子題的選項是一句中文：一行一個，字小一點，靠左 */
+.options.sentences {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.options.sentences .opt {
+  height: auto;
+  min-height: 54px;
+  padding: 8px 44px 8px 32px;
+  font-size: 17px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.options.sentences .opt .num {
+  top: 50%;
+  margin-top: -8px;
 }
 
 .opt .opt-label[lang='ja'] {
@@ -1864,6 +2118,33 @@ body.is-playing .wrap {
   color: var(--ink-2);
 }
 
+/* 答錯的句子：一列一句，日文和中文 */
+.miss-sent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+  border: 1.5px solid var(--ink);
+}
+
+.miss-sent li {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  background: var(--paper);
+}
+
+.miss-sent .s-ja {
+  font-size: 17px;
+}
+
+.miss-sent .s-zh {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
 .actions {
   display: grid;
   gap: 8px;
@@ -1894,21 +2175,27 @@ body.is-playing .wrap {
     grid-column: 1 / -1;
   }
 
-  /* 單字本：平假名在左，片假名在右 */
-  .wordbook {
+  /* 清單頁：單字本平假名在左、片假名在右；只有一段時佔滿 */
+  .book {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px var(--col-gap);
     align-items: start;
   }
 
-  .wordbook > .sheet {
+  .book > .sheet {
     margin-bottom: 0;
   }
 
-  .wordbook > .w-top,
-  .wordbook > .w-col:nth-child(2):last-child {
+  .book > .w-top,
+  .book > .next-step,
+  .book.single > .w-col {
     grid-column: 1 / -1;
+  }
+
+  /* 句子列表只有一段，句子排成兩欄 */
+  .sentencebook .w-list {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   /* 分頁底部的開始列：兩欄的寬度太長，放在中間 */

@@ -22,8 +22,9 @@ Practice adapts to the learner. The quiz records right answers, wrong answers an
 
 ## Operating Context
 
-- Two tabs, 假名 and 單字, ordered as learning steps; a third, 句子 (sentences and situational questions), is planned. Each tab first shows familiarity (the kana chart, or the word book listing readable words with mastery marks) and keeps a practice bar at the bottom that leads to that tab's quiz: setup, play, result.
-- The range of kana rows to practise is shared by both tabs; the word book and word quiz only use words spelled with those kana.
+- Three tabs ordered as learning steps: 假名, 單字, 句子. Each tab first shows familiarity (the kana chart, the word book, or the list of example sentences, all with mastery marks) and keeps a practice bar at the bottom that leads to that tab's quiz: setup, play, result.
+- The range of kana rows to practise is shared by all tabs; the word book and word quiz only use words spelled with those kana, and the sentence tab only uses those words' example sentences.
+- Sentence questions come in three kinds: put the shuffled chunks in order (two extra chunks mixed in), read a sentence and pick its meaning, or hear it and pick its meaning. Situational questions (ordering in a restaurant, a convenience store, asking the way) are planned next.
 - Tapping a kana plays its sound through the browser's Japanese voice.
 - After a word answer, a dictionary-style entry explains the word with an example sentence.
 - Published two ways: GitHub Pages, and a single-file page on claude.ai where practice records sync to the viewer's account.
@@ -44,7 +45,7 @@ Practice adapts to the learner. The quiz records right answers, wrong answers an
 
 ## Evidence on Hand
 
-- 104 kana with romaji in `src/kana.js`; about 300 words with meanings, notes and example sentences in `src/words.js` and `src/dict.js`.
+- 104 kana with romaji in `src/kana.js`; about 300 words with meanings, notes and example sentences in `src/words.js` and `src/dict.js`. The 293 example sentences are written in kana with a space between chunks, which the sentence quiz relies on.
 - No user research with real learners yet. A usability test outline exists but has not been run.
 
 ## Product Principles
